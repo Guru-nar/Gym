@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -64,6 +65,7 @@ input::placeholder{color:var(--dim);}
 <div class="app">
 
 <!-- HOME -->
+
 <div class="screen active" id="s-home">
   <div class="topbar">
     <div style="flex:1">
@@ -86,10 +88,11 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- SCHERMATA ALLENAMENTO -->
+
 <div class="screen" id="s-workout">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-home')">&#8249;</button>
-    <div class="topbar-title" id="workout-title-display">Allenamento</div>
+    <div class="topbar-title" id="workout-title-display" onclick="renameWorkout()" style="cursor:pointer;border-bottom:1px dashed #444;display:inline-block;max-width:200px;">Allenamento</div>
     <div style="color:var(--muted);font-size:12px;" id="workout-date-display"></div>
   </div>
   <div class="scroll">
@@ -105,6 +108,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLENAMENTO ATTIVO -->
+
 <div class="screen" id="s-active">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-workout')">&#8249;</button>
@@ -118,10 +122,11 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- DETTAGLIO ESERCIZIO -->
+
 <div class="screen" id="s-ex-detail">
   <div class="topbar">
     <button class="back-btn" onclick="backToActive()">&#8249;</button>
-    <div class="topbar-title" id="ex-detail-name"></div>
+    <div class="topbar-title" id="ex-detail-name" onclick="renameExercise()" style="cursor:pointer;border-bottom:1px dashed #444;display:inline-block;max-width:180px;"></div>
     <div id="ex-progress-badge" class="tag tag-blue" style="font-size:12px;"></div>
   </div>
   <div class="scroll">
@@ -160,6 +165,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- TIMER PAUSA -->
+
 <div class="screen" id="s-timer">
   <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;align-items:center;justify-content:center;padding:32px 24px;">
     <div style="color:var(--muted);font-size:13px;margin-bottom:4px;" id="timer-label">Pausa</div>
@@ -183,6 +189,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- SCHERMATA ALLARME VERDE -->
+
 <div class="screen" id="s-alarm">
   <div class="alarm-screen" style="display:flex;flex-direction:column;height:100vh;align-items:center;justify-content:center;padding:32px 24px;">
     <div style="font-size:80px;margin-bottom:16px;">💪</div>
@@ -197,6 +204,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL AGGIUNGI ESERCIZIO -->
+
 <div id="modal-add-ex" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeModal()"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;">
@@ -208,6 +216,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL NUOVO ALLENAMENTO -->
+
 <div id="modal-new-workout" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeNewWorkoutModal()"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;">
@@ -217,7 +226,20 @@ input::placeholder{color:var(--dim);}
   </div>
 </div>
 
-<!-- MODAL CONFERMA ELIMINA -->
+<!-- MODAL RINOMINA -->
+
+<div id="modal-rename" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;">
+  <div style="width:100%;height:100%;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px;">
+    <div style="background:#1a1a1a;border-radius:20px;padding:24px;width:100%;max-width:340px;border:0.5px solid #333;">
+      <div style="color:var(--text);font-size:17px;font-weight:600;margin-bottom:16px;" id="rename-title">Rinomina</div>
+      <input type="text" id="rename-input" placeholder="Nuovo nome..." style="margin-bottom:20px;font-size:16px;"/>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-dark" style="flex:1;padding:14px;" onclick="closeRename()">Annulla</button>
+        <button class="btn btn-blue" style="flex:1;padding:14px;" onclick="confirmRename()">Salva</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="modal-confirm" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px;">
     <div style="background:#1a1a1a;border-radius:20px;padding:24px;width:100%;max-width:340px;border:0.5px solid #333;">
@@ -303,7 +325,46 @@ function goScreen(id){
 function backToActive(){renderActiveScreen();goScreen('s-active');}
 function backToActiveFromAlarm(){stopAlarmSound();renderActiveScreen();goScreen('s-active');}
 
-/* ── CONFERMA ELIMINA ── */
+/* ── RINOMINA ── */
+let _renameCallback = null;
+function openRenameModal(title, currentName, onSave) {
+  document.getElementById('rename-title').textContent = title;
+  document.getElementById('rename-input').value = currentName;
+  _renameCallback = onSave;
+  document.getElementById('modal-rename').style.display = 'block';
+  setTimeout(() => {
+    const inp = document.getElementById('rename-input');
+    inp.focus(); inp.select();
+  }, 100);
+}
+function closeRename() {
+  document.getElementById('modal-rename').style.display = 'none';
+  _renameCallback = null;
+}
+function confirmRename() {
+  const val = document.getElementById('rename-input').value.trim();
+  if (!val) return;
+  if (_renameCallback) _renameCallback(val);
+  closeRename();
+}
+function renameWorkout() {
+  const w = workouts[currentWorkoutIdx];
+  openRenameModal('Rinomina allenamento', w.name, (newName) => {
+    w.name = newName;
+    document.getElementById('workout-title-display').textContent = newName;
+    document.getElementById('active-workout-name').textContent = newName;
+    renderAllWorkouts();
+  });
+}
+function renameExercise() {
+  const ex = workouts[currentWorkoutIdx].exercises[currentExIdx];
+  openRenameModal('Rinomina esercizio', ex.name, (newName) => {
+    ex.name = newName;
+    document.getElementById('ex-detail-name').textContent = newName;
+    renderWorkoutScreen();
+    renderActiveScreen();
+  });
+}
 function showConfirm(title,body,onOk){
   document.getElementById('confirm-title').textContent=title;
   document.getElementById('confirm-body').textContent=body;
@@ -366,18 +427,27 @@ function renderHomeList(list){
     const done=w.exercises.filter(e=>e.sets.every(s=>s.done)).length;
     const dateStr=w.day+'/'+String(w.month+1).padStart(2,'0')+'/'+w.year;
     return `<div style="position:relative;margin-bottom:10px;">
-      <div class="card" onclick="openWorkout(${i})" style="cursor:pointer;margin-bottom:0;padding-right:70px;">
+      <div class="card" onclick="openWorkout(${i})" style="cursor:pointer;margin-bottom:0;padding-right:110px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="color:var(--text);font-size:15px;font-weight:600;">${w.name}</div>
           <span class="tag tag-blue">${dateStr}</span>
         </div>
         <div style="color:var(--muted);font-size:12px;margin-top:4px;">${w.exercises.length} esercizi · ${w.exercises.reduce((a,e)=>a+e.sets.length,0)} set totali</div>
       </div>
-      <button onclick="askDeleteWorkout(${i})" style="position:absolute;right:0;top:0;bottom:0;width:60px;border:none;background:#7f1d1d;border-radius:0 14px 14px 0;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;">Elimina</button>
+      <button onclick="event.stopPropagation();renameWorkoutFromHome(${i})" style="position:absolute;right:60px;top:0;bottom:0;width:46px;border:none;background:#1e3a6e;color:#93c5fd;font-size:15px;cursor:pointer;">✎</button>
+      <button onclick="event.stopPropagation();askDeleteWorkout(${i})" style="position:absolute;right:0;top:0;bottom:0;width:60px;border:none;background:#7f1d1d;border-radius:0 14px 14px 0;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;">Elimina</button>
     </div>`;
   }).join('');
 }
 
+function renameWorkoutFromHome(idx) {
+  const w = workouts[idx];
+  openRenameModal('Rinomina allenamento', w.name, (newName) => {
+    w.name = newName;
+    renderAllWorkouts();
+    buildCalendar();
+  });
+}
 /* ── ELIMINA ALLENAMENTO ── */
 function askDeleteWorkout(idx){
   showConfirm(
@@ -693,7 +763,69 @@ function finishWorkout(){
 }
 
 /* ── INIT ── */
+
+const today = new Date();
+const dd = today.getDate(), mm = today.getMonth(), yy = today.getFullYear();
+
+function mkEx(name, reps, sets, restSec) {
+  const arr = [];
+  for (let i = 0; i < sets; i++) {
+    arr.push({ kg: 0, reps: reps, done: false, restSeconds: restSec });
+  }
+  return { name, restSeconds: restSec, note: 'Reps: ' + reps, sets: arr };
+}
+
+workouts = [
+  {
+    name: 'Allenamento N°1',
+    day: dd, month: mm, year: yy,
+    exercises: [
+      mkEx('Panca piana',        4,     3, 90),
+      mkEx('Chest press',        10,    2, 90),
+      mkEx('Panca inclinata',    5,     2, 90),
+      mkEx('Aperture',           10,    2, 90),
+      mkEx('Chest press',        8,     2, 90),
+      mkEx('Cavi busto a 90',    10,    2, 90),
+      mkEx('Bicipiti manubri',   6,     3, 75),
+      mkEx('A martello',         12,    3, 75),
+      mkEx('Leg curl prono',     20,    3, 60),
+      mkEx('Step up',            10,    3, 60),
+    ]
+  },
+  {
+    name: 'Allenamento N°2',
+    day: dd, month: mm, year: yy,
+    exercises: [
+      mkEx('Pulley',                   6,  3, 90),
+      mkEx('Pulley a 45°',             10, 2, 90),
+      mkEx('Lat stretta',              6,  2, 90),
+      mkEx('Row Panatta',              10, 2, 90),
+      mkEx('Sbarra',                   6,  2, 90),
+      mkEx('Row + tirate al mento KL', 10, 3, 90),
+      mkEx('Tricipiti push down',      6,  3, 75),
+      mkEx('French press bilanciere',  20, 3, 30),
+      mkEx('Corda',                    12, 2, 75),
+      mkEx('Affondi',                  10, 3, 30),
+    ]
+  },
+  {
+    name: 'Allenamento N°3',
+    day: dd, month: mm, year: yy,
+    exercises: [
+      mkEx('Spalle alzate lat',      6,  3, 60),
+      mkEx('Alzate a 90° ai cavi',   6,  3, 60),
+      mkEx('Shoulder press',         6,  3, 60),
+      mkEx('Scrollate al M.Power',   6,  4, 60),
+      mkEx('Squat',                  8,  4, 90),
+      mkEx('Leg ext',                8,  2, 60),
+      mkEx('Addome su panca',        12, 3, 30),
+      mkEx('Polpacci',               20, 4, 60),
+    ]
+  }
+];
+
 filterSugg();buildCalendar();renderAllWorkouts();
 </script>
+
 </body>
 </html>
