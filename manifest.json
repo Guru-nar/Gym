@@ -2,7 +2,7 @@
   "name": "GymGuru",
   "short_name": "GymGuru",
   "description": "Il tuo compagno di allenamento in palestra",
-  "start_url": "./palestra.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f0f0f",
