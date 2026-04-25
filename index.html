@@ -219,10 +219,21 @@ input::placeholder{color:var(--dim);}
 
 <div id="modal-new-workout" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeNewWorkoutModal()"></div>
-  <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;">
+  <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;max-height:85vh;overflow-y:auto;">
     <div style="color:var(--text);font-size:17px;font-weight:600;margin-bottom:16px;">Nuovo allenamento</div>
-    <input type="text" id="workout-name-input" placeholder="Es. Petto &amp; Tricipiti" style="margin-bottom:16px;"/>
-    <button class="btn btn-blue" onclick="createWorkout()">Crea allenamento</button>
+
+```
+<div style="color:var(--muted);font-size:12px;margin-bottom:6px;letter-spacing:.4px;">DATA</div>
+<input type="date" id="workout-date-picker" style="margin-bottom:16px;color-scheme:dark;background:var(--card2);border:0.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;padding:12px 14px;width:100%;outline:none;"/>
+
+<div style="color:var(--muted);font-size:12px;margin-bottom:8px;letter-spacing:.4px;">SCEGLI SCHEDA (opzionale)</div>
+<div id="template-list" style="margin-bottom:14px;"></div>
+
+<div style="color:var(--muted);font-size:12px;margin-bottom:6px;letter-spacing:.4px;">OPPURE NOME LIBERO</div>
+<input type="text" id="workout-name-input" placeholder="Es. Petto &amp; Tricipiti" style="margin-bottom:16px;"/>
+<button class="btn btn-blue" onclick="createWorkout()">Crea allenamento</button>
+```
+
   </div>
 </div>
 
@@ -353,6 +364,7 @@ function renameWorkout() {
     w.name = newName;
     document.getElementById('workout-title-display').textContent = newName;
     document.getElementById('active-workout-name').textContent = newName;
+    saveWorkouts();
     renderAllWorkouts();
   });
 }
@@ -361,6 +373,7 @@ function renameExercise() {
   openRenameModal('Rinomina esercizio', ex.name, (newName) => {
     ex.name = newName;
     document.getElementById('ex-detail-name').textContent = newName;
+    saveWorkouts();
     renderWorkoutScreen();
     renderActiveScreen();
   });
@@ -387,24 +400,34 @@ function buildCalendar(){
   const dim=new Date(y,m+1,0).getDate();
   const prev=new Date(y,m,0).getDate();
   let h='';
-  for(let i=off-1;i>=0;i--) h+=`<div class="cal-d other">${prev-i}</div>`;
+  for(let i=off-1;i>=0;i--){
+    const pd=prev-i;
+    const pm=m-1<0?11:m-1; const py=m-1<0?y-1:y;
+    const hasW=workouts.some(w=>w.day===pd&&w.month===pm&&w.year===py);
+    h+=`<div class="cal-d other${hasW?' has-w':''}" onclick="dayClick(${pd},${pm},${py})" style="color:#555;cursor:pointer;">${pd}</div>`;
+  }
   for(let d=1;d<=dim;d++){
     const isT=d===today;
     const hasW=workouts.some(w=>w.day===d&&w.month===m&&w.year===y);
     h+=`<div class="cal-d${isT?' today':''}${hasW?' has-w':''}" onclick="dayClick(${d},${m},${y})">${d}</div>`;
   }
   const rem=42-off-dim;
-  for(let i=1;i<=Math.max(0,rem);i++) h+=`<div class="cal-d other">${i}</div>`;
+  for(let i=1;i<=Math.max(0,rem);i++){
+    const nm=m+1>11?0:m+1; const ny=m+1>11?y+1:y;
+    const hasW=workouts.some(w=>w.day===i&&w.month===nm&&w.year===ny);
+    h+=`<div class="cal-d other${hasW?' has-w':''}" onclick="dayClick(${i},${nm},${ny})" style="color:#555;cursor:pointer;">${i}</div>`;
+  }
   document.getElementById('cal-body').innerHTML=h;
 }
 
 function dayClick(d,m,y){
   const filtered=workouts.filter(w=>w.day===d&&w.month===m&&w.year===y);
   const list=document.getElementById('workout-list-home');
+  const dateLabel = d+'/'+String(m+1).padStart(2,'0')+'/'+y;
   if(filtered.length===0){
     list.innerHTML=`<div class="card" style="border:0.5px dashed var(--dim);background:transparent;text-align:center;">
-      <div style="color:var(--muted);font-size:14px;margin-bottom:12px;">${d}/${m+1} — Nessun allenamento</div>
-      <button class="btn btn-blue" style="padding:12px;" onclick="openNewWorkout()">+ Crea allenamento</button>
+      <div style="color:var(--muted);font-size:14px;margin-bottom:12px;">${dateLabel} — Nessun allenamento</div>
+      <button class="btn btn-blue" style="padding:12px;" onclick="openNewWorkout(${d},${m},${y})">+ Crea allenamento</button>
     </div>`;
     return;
   }
@@ -444,6 +467,7 @@ function renameWorkoutFromHome(idx) {
   const w = workouts[idx];
   openRenameModal('Rinomina allenamento', w.name, (newName) => {
     w.name = newName;
+    saveWorkouts();
     renderAllWorkouts();
     buildCalendar();
   });
@@ -456,6 +480,7 @@ function askDeleteWorkout(idx){
     ()=>{
       workouts.splice(idx,1);
       if(currentWorkoutIdx===idx) currentWorkoutIdx=null;
+      saveWorkouts();
       buildCalendar();
       renderAllWorkouts();
     }
@@ -467,18 +492,73 @@ function deleteCurrentWorkout(){
 }
 
 /* ── ALLENAMENTO ── */
-function openNewWorkout(){
-  document.getElementById('workout-name-input').value='';
-  document.getElementById('modal-new-workout').style.display='block';
-  setTimeout(()=>document.getElementById('workout-name-input').focus(),100);
+let selectedTemplateIdx = null;
+
+function openNewWorkout(preselDay, preselMonth, preselYear) {
+  document.getElementById('workout-name-input').value = '';
+  selectedTemplateIdx = null;
+
+  // Set date picker default
+  const now = new Date();
+  const d = preselDay || now.getDate();
+  const m = preselMonth !== undefined ? preselMonth : now.getMonth();
+  const y = preselYear || now.getFullYear();
+  const dateStr = y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+  document.getElementById('workout-date-picker').value = dateStr;
+
+  // Render template buttons
+  document.getElementById('template-list').innerHTML = TEMPLATES.map((t,i) =>
+    `<div id="tpl-btn-${i}" onclick="selectTemplate(${i})" style="background:var(--card2);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;color:var(--muted);font-size:14px;">${t.name}</div>`
+  ).join('');
+
+  document.getElementById('modal-new-workout').style.display = 'block';
 }
+function selectTemplate(idx) {
+  selectedTemplateIdx = idx;
+  document.querySelectorAll('[id^="tpl-btn-"]').forEach((el,i) => {
+    el.style.background = i === idx ? '#1e3a6e' : 'var(--card2)';
+    el.style.color = i === idx ? '#93c5fd' : 'var(--muted)';
+    el.style.borderColor = i === idx ? 'var(--blue)' : 'var(--border)';
+  });
+  // prefill name
+  document.getElementById('workout-name-input').value = TEMPLATES[idx].name;
+}
+
 function closeNewWorkoutModal(){document.getElementById('modal-new-workout').style.display='none';}
 
+function deepCloneExercises(exercises) {
+  return exercises.map(ex => ({
+    ...ex,
+    sets: ex.sets.map(s => ({...s}))
+  }));
+}
+
 function createWorkout(){
-  const name=document.getElementById('workout-name-input').value.trim()||'Allenamento';
-  const now=new Date();
-  workouts.push({name,day:now.getDate(),month:now.getMonth(),year:now.getFullYear(),exercises:[]});
-  currentWorkoutIdx=workouts.length-1;
+  const nameInput = document.getElementById('workout-name-input').value.trim();
+  const dateVal = document.getElementById('workout-date-picker').value;
+
+  let d, m, y;
+  if (dateVal) {
+    const parts = dateVal.split('-');
+    y = parseInt(parts[0]); m = parseInt(parts[1])-1; d = parseInt(parts[2]);
+  } else {
+    const now = new Date();
+    d = now.getDate(); m = now.getMonth(); y = now.getFullYear();
+  }
+
+  let exercises = [];
+  let name = nameInput;
+
+  if (selectedTemplateIdx !== null) {
+    const tpl = TEMPLATES[selectedTemplateIdx];
+    exercises = deepCloneExercises(tpl.exercises);
+    if (!name) name = tpl.name;
+  }
+  if (!name) name = 'Allenamento';
+
+  workouts.push({ name, day: d, month: m, year: y, exercises });
+  currentWorkoutIdx = workouts.length - 1;
+  saveWorkouts();
   closeNewWorkoutModal();
   buildCalendar();
   renderAllWorkouts();
@@ -504,14 +584,15 @@ function renderWorkoutScreen(){
   }
   list.innerHTML=w.exercises.map((ex,i)=>`
     <div style="position:relative;margin-bottom:10px;">
-      <div class="card" onclick="openExDetailFromWorkout(${i})" style="cursor:pointer;margin-bottom:0;padding-right:70px;">
+      <div class="card" onclick="openExDetailFromWorkout(${i})" style="cursor:pointer;margin-bottom:0;padding-right:110px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="color:var(--text);font-size:15px;font-weight:600;">${ex.name}</div>
           <span class="tag tag-blue">${ex.sets.length} set</span>
         </div>
         <div style="color:var(--muted);font-size:12px;margin-top:4px;">Pausa: ${ex.restSeconds}s</div>
       </div>
-      <button onclick="askDeleteExercise(${i})" style="position:absolute;right:0;top:0;bottom:0;width:60px;border:none;background:#7f1d1d;border-radius:0 14px 14px 0;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;">Elimina</button>
+      <button onclick="event.stopPropagation();renameExerciseFromList(${i})" style="position:absolute;right:60px;top:0;bottom:0;width:46px;border:none;background:#1e3a6e;color:#93c5fd;font-size:15px;cursor:pointer;">✎</button>
+      <button onclick="event.stopPropagation();askDeleteExercise(${i})" style="position:absolute;right:0;top:0;bottom:0;width:60px;border:none;background:#7f1d1d;border-radius:0 14px 14px 0;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;">Elimina</button>
     </div>
   `).join('');
 }
@@ -524,6 +605,7 @@ function askDeleteExercise(idx){
     `Vuoi eliminare "${w.exercises[idx].name}"?`,
     ()=>{
       w.exercises.splice(idx,1);
+      saveWorkouts();
       renderWorkoutScreen();
       renderActiveScreen();
     }
@@ -537,6 +619,7 @@ function deleteCurrentExercise(){
     ()=>{
       w.exercises.splice(currentExIdx,1);
       currentExIdx=null;
+      saveWorkouts();
       renderActiveScreen();
       renderWorkoutScreen();
       goScreen('s-active');
@@ -544,6 +627,14 @@ function deleteCurrentExercise(){
   );
 }
 
+function renameExerciseFromList(idx) {
+  const ex = workouts[currentWorkoutIdx].exercises[idx];
+  openRenameModal('Rinomina esercizio', ex.name, (newName) => {
+    ex.name = newName;
+    saveWorkouts();
+    renderWorkoutScreen();
+  });
+}
 /* ── MODAL AGGIUNGI ESERCIZIO ── */
 function showAddExModal(){
   document.getElementById('ex-search-input').value='';
@@ -562,6 +653,7 @@ function addExerciseFromModal(){
   const name=document.getElementById('ex-search-input').value.trim();
   if(!name) return;
   workouts[currentWorkoutIdx].exercises.push({name,restSeconds:90,note:'',sets:[{kg:0,reps:8,done:false,restSeconds:90}]});
+  saveWorkouts();
   closeModal();
   renderWorkoutScreen();
 }
@@ -611,6 +703,7 @@ function askDeleteSet(idx){
     ()=>{
       ex.sets.splice(idx,1);
       if(currentSetIdx>=ex.sets.length) currentSetIdx=ex.sets.length-1;
+      saveWorkouts();
       renderExDetail();
     }
   );
@@ -618,25 +711,27 @@ function askDeleteSet(idx){
 
 function updateSetVal(i,field,val){
   workouts[currentWorkoutIdx].exercises[currentExIdx].sets[i][field]=parseFloat(val)||0;
+  saveWorkouts();
 }
 function toggleSet(i){
   const s=workouts[currentWorkoutIdx].exercises[currentExIdx].sets[i];
-  s.done=!s.done;renderExDetail();
+  s.done=!s.done; saveWorkouts(); renderExDetail();
 }
 function addSetToEx(){
   const ex=workouts[currentWorkoutIdx].exercises[currentExIdx];
   const last=ex.sets[ex.sets.length-1];
   ex.sets.push({kg:last?last.kg:0,reps:last?last.reps:8,done:false,restSeconds:ex.restSeconds});
-  renderExDetail();
+  saveWorkouts(); renderExDetail();
 }
 function applyGlobalTimer(){
   const val=parseInt(document.getElementById('global-timer-input').value)||90;
   const ex=workouts[currentWorkoutIdx].exercises[currentExIdx];
   ex.restSeconds=val;ex.sets.forEach(s=>s.restSeconds=val);
-  renderExDetail();
+  saveWorkouts(); renderExDetail();
 }
 function saveNote(){
   workouts[currentWorkoutIdx].exercises[currentExIdx].note=document.getElementById('ex-note-input').value;
+  saveWorkouts();
 }
 
 /* ── AVVIO ALLENAMENTO ── */
@@ -693,6 +788,7 @@ function logCurrentSet(){
   ex.sets[realIdx].done=true;
   currentSetIdx=realIdx;
   playShortBeep(660,0.1);
+  saveWorkouts();
   renderExDetail();
   const rest=ex.sets[realIdx].restSeconds||ex.restSeconds||90;
   const nextSetIdx=realIdx+1;
@@ -764,9 +860,6 @@ function finishWorkout(){
 
 /* ── INIT ── */
 
-const today = new Date();
-const dd = today.getDate(), mm = today.getMonth(), yy = today.getFullYear();
-
 function mkEx(name, reps, sets, restSec) {
   const arr = [];
   for (let i = 0; i < sets; i++) {
@@ -775,26 +868,25 @@ function mkEx(name, reps, sets, restSec) {
   return { name, restSeconds: restSec, note: 'Reps: ' + reps, sets: arr };
 }
 
-workouts = [
+// TEMPLATES — schede base, non legate a una data
+const TEMPLATES = [
   {
     name: 'Allenamento N°1',
-    day: dd, month: mm, year: yy,
     exercises: [
-      mkEx('Panca piana',        4,     3, 90),
-      mkEx('Chest press',        10,    2, 90),
-      mkEx('Panca inclinata',    5,     2, 90),
-      mkEx('Aperture',           10,    2, 90),
-      mkEx('Chest press',        8,     2, 90),
-      mkEx('Cavi busto a 90',    10,    2, 90),
-      mkEx('Bicipiti manubri',   6,     3, 75),
-      mkEx('A martello',         12,    3, 75),
-      mkEx('Leg curl prono',     20,    3, 60),
-      mkEx('Step up',            10,    3, 60),
+      mkEx('Panca piana',        4,  3, 90),
+      mkEx('Chest press',        10, 2, 90),
+      mkEx('Panca inclinata',    5,  2, 90),
+      mkEx('Aperture',           10, 2, 90),
+      mkEx('Chest press',        8,  2, 90),
+      mkEx('Cavi busto a 90',    10, 2, 90),
+      mkEx('Bicipiti manubri',   6,  3, 75),
+      mkEx('A martello',         12, 3, 75),
+      mkEx('Leg curl prono',     20, 3, 60),
+      mkEx('Step up',            10, 3, 60),
     ]
   },
   {
     name: 'Allenamento N°2',
-    day: dd, month: mm, year: yy,
     exercises: [
       mkEx('Pulley',                   6,  3, 90),
       mkEx('Pulley a 45°',             10, 2, 90),
@@ -810,7 +902,6 @@ workouts = [
   },
   {
     name: 'Allenamento N°3',
-    day: dd, month: mm, year: yy,
     exercises: [
       mkEx('Spalle alzate lat',      6,  3, 60),
       mkEx('Alzate a 90° ai cavi',   6,  3, 60),
@@ -824,6 +915,21 @@ workouts = [
   }
 ];
 
+// Carica workouts dal localStorage se esistono
+function loadWorkouts() {
+  try {
+    const saved = localStorage.getItem('gymguru_workouts');
+    if (saved) workouts = JSON.parse(saved);
+  } catch(e) {}
+}
+
+function saveWorkouts() {
+  try {
+    localStorage.setItem('gymguru_workouts', JSON.stringify(workouts));
+  } catch(e) {}
+}
+
+loadWorkouts();
 filterSugg();buildCalendar();renderAllWorkouts();
 </script>
 
