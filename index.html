@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -61,15 +60,13 @@ input::placeholder{color:var(--dim);}
 
 @keyframes greenPulse{0%{background:#15803d}50%{background:#22c55e}100%{background:#15803d}}
 .alarm-screen{animation:greenPulse 0.7s infinite;}
-#mini-timer-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(–border);padding:10px 16px;align-items:center;gap:12px;}
+#mini-timer-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(--border);padding:10px 16px;align-items:center;gap:12px;}
 </style>
-
 </head>
 <body>
 <div class="app">
 
 <!-- HOME -->
-
 <div class="screen active" id="s-home">
   <div class="topbar">
     <div style="flex:1">
@@ -92,7 +89,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLENAMENTO CONFIG -->
-
 <div class="screen" id="s-workout">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-home')">&#8249;</button>
@@ -114,7 +110,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODALITA' MODIFICA ORDINE -->
-
 <div class="screen" id="s-edit-mode">
   <div class="topbar">
     <button class="back-btn" onclick="cancelEditMode()">&#8249;</button>
@@ -131,7 +126,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLENAMENTO ATTIVO -->
-
 <div class="screen" id="s-active">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-workout')">&#8249;</button>
@@ -145,7 +139,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- DETTAGLIO FORZA -->
-
 <div class="screen" id="s-ex-detail">
   <div class="topbar">
     <button class="back-btn" onclick="backToActive()">&#8249;</button>
@@ -186,7 +179,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- DETTAGLIO CARDIO -->
-
 <div class="screen" id="s-cardio-detail">
   <div class="topbar">
     <button class="back-btn" onclick="backToActive()">&#8249;</button>
@@ -231,7 +223,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- TIMER PAUSA -->
-
 <div class="screen" id="s-timer">
   <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;">
     <div class="topbar">
@@ -260,7 +251,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- TIMER CARDIO -->
-
 <div class="screen" id="s-cardio-timer">
   <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;">
     <div class="topbar">
@@ -288,7 +278,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLARME VERDE -->
-
 <div class="screen" id="s-alarm">
   <div class="alarm-screen" style="display:flex;flex-direction:column;height:100vh;align-items:center;justify-content:center;padding:32px 24px;">
     <div style="font-size:80px;margin-bottom:16px;">💪</div>
@@ -303,7 +292,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MINI TIMER BAR -->
-
 <div id="mini-timer-bar">
   <div style="width:40px;height:40px;border-radius:50%;border:2.5px solid var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
     <span id="mini-timer-txt" style="color:var(--blue);font-size:11px;font-weight:700;">1:30</span>
@@ -316,7 +304,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL AGGIUNGI ESERCIZIO -->
-
 <div id="modal-add-ex" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeModal()"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;max-height:90vh;overflow-y:auto;">
@@ -332,7 +319,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL NUOVO ALLENAMENTO -->
-
 <div id="modal-new-workout" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeNewWorkoutModal()"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;max-height:90vh;overflow-y:auto;">
@@ -348,7 +334,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL RINOMINA -->
-
 <div id="modal-rename" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px;">
     <div style="background:#1a1a1a;border-radius:20px;padding:24px;width:100%;max-width:340px;border:0.5px solid #333;">
@@ -363,7 +348,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL CONFERMA -->
-
 <div id="modal-confirm" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px;">
     <div style="background:#1a1a1a;border-radius:20px;padding:24px;width:100%;max-width:340px;border:0.5px solid #333;">
@@ -622,7 +606,7 @@ function renderWorkoutScreen(){
   if(w.exercises.length===0){list.innerHTML=`<div style="color:var(--dim);font-size:13px;margin-bottom:16px;">Nessun esercizio. Aggiungine uno sotto.</div>`;return;}
   list.innerHTML=w.exercises.map((ex,i)=>{
     const ic=ex.type==='cardio';
-    const sub=ic?`Cardio - ${Math.round((ex.durationSeconds||600)/60)} min`:`Pausa: ${ex.restSeconds}s - ${ex.sets?ex.sets.length:0} set`;
+    var sub=ic?('Cardio - '+Math.round((ex.durationSeconds||600)/60)+' min'):('Pausa: '+ex.restSeconds+'s - '+(ex.sets?ex.sets.length:0)+' set');
     return `<div style="position:relative;margin-bottom:10px;">
       <div class="card" onclick="openExDetailFromWorkout(${i})" style="cursor:pointer;margin-bottom:0;padding-right:110px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -797,7 +781,7 @@ function renderActiveScreen(){
     const allDone=done===total&&total>0;
     const bc=allDone?'var(--green)':ic?'var(--orange)':'var(--border)';
     const pc=ic?'var(--orange)':'var(--blue)';
-    const sub=ic?`Cardio - ${Math.round((ex.durationSeconds||600)/60)} min`:`${done}/${total} set completati`;
+    var sub=ic?('Cardio - '+Math.round((ex.durationSeconds||600)/60)+' min'):(done+'/'+total+' set completati');
     return `<div class="active-ex-card" onclick="openExFromActive(${i})" style="border-color:${bc};">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div style="color:var(--text);font-size:15px;font-weight:600;">${ex.name}</div>
@@ -1079,7 +1063,7 @@ function downloadPDF() {
         const restStr = rest >= 60 ? Math.floor(rest/60)+'\''+String(rest%60).padStart(2,'0')+'\"' : rest+'\"';
         rows += `<tr style="background:${rowNum%2===0?'#f0f4ff':'#fff'};">
           <td>${rowNum}</td>
-          <td>${si===0?`<strong>${ex.name}</strong>`:''}</td>
+          <td>${si===0?('<strong>'+ex.name+'</strong>'):''}</td>
           <td style="text-align:center;">${si+1}</td>
           <td style="text-align:center;">${s.kg} kg</td>
           <td style="text-align:center;">${s.reps} reps</td>
@@ -1101,7 +1085,6 @@ function downloadPDF() {
     .footer{margin-top:24px;font-size:11px;color:#999;text-align:center;}
     @media print{body{padding:12px;} button{display:none;}}
   </style></head><body>
-
   <h1>💪 ${w.name}</h1>
   <div class="sub">Data: ${dateStr} &nbsp;·&nbsp; ${w.exercises.length} esercizi &nbsp;·&nbsp; Generato con GymGuru</div>
   <table>
@@ -1118,28 +1101,27 @@ function downloadPDF() {
   <br><button onclick="window.print()" style="padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Stampa / Salva PDF</button>
   </body></html>`;
 
-const blob = new Blob([html], {type:‘text/html’});
-const url = URL.createObjectURL(blob);
-const a = document.createElement(‘a’);
-a.href = url;
-a.download = `GymGuru_${w.name.replace(/\s+/g,'_')}_${dateStr.replace(/\//g,'-')}.html`;
-a.click();
-URL.revokeObjectURL(url);
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `GymGuru_${w.name.replace(/\s+/g,'_')}_${dateStr.replace(/\//g,'-')}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /* ── INIT ── */
 function initApp(){
-try { load(); } catch(e) { console.warn(‘load error’,e); workouts=[]; }
-try { filterSugg(); } catch(e) {}
-try { buildCalendar(); } catch(e) { console.error(‘calendar error’,e); }
-try { renderAllWorkouts(); } catch(e) { console.error(‘render error’,e); }
+  try { load(); } catch(e) { console.warn('load error',e); workouts=[]; }
+  try { filterSugg(); } catch(e) {}
+  try { buildCalendar(); } catch(e) { console.error('calendar error',e); }
+  try { renderAllWorkouts(); } catch(e) { console.error('render error',e); }
 }
-if(document.readyState===‘loading’){
-document.addEventListener(‘DOMContentLoaded’, initApp);
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', initApp);
 } else {
-initApp();
+  initApp();
 }
 </script>
-
 </body>
 </html>
