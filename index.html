@@ -494,23 +494,46 @@ function confirmRename(){const v=document.getElementById('rename-input').value.t
 
 /* ── CALENDARIO ── */
 function buildCalendar(){
-  const now=new Date();
-  const ML=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-  const DL=['Lu','Ma','Me','Gi','Ve','Sa','Do'];
-  document.getElementById('month-label').textContent=ML[now.getMonth()]+' '+now.getFullYear();
-  document.getElementById('home-date').textContent=now.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('day-names').innerHTML=DL.map(d=>`<div class="cal-dn">${d}</div>`).join('');
-  const y=now.getFullYear(),m=now.getMonth(),today=now.getDate();
-  const first=new Date(y,m,1).getDay();
-  const off=(first===0)?6:first-1;
-  const dim=new Date(y,m+1,0).getDate();
-  const prev=new Date(y,m,0).getDate();
-  let h='';
-  for(let i=off-1;i>=0;i--){const pd=prev-i,pm=m-1<0?11:m-1,py=m-1<0?y-1:y;const hw=workouts.some(w=>w.day===pd&&w.month===pm&&w.year===py);h+=`<div class="cal-d other${hw?' has-w':''}" onclick="dayClick(${pd},${pm},${py})">${pd}</div>`;}
-  for(let d=1;d<=dim;d++){const isT=d===today;const hw=workouts.some(w=>w.day===d&&w.month===m&&w.year===y);h+=`<div class="cal-d${isT?' today':''}${hw?' has-w':''}" onclick="dayClick(${d},${m},${y})">${d}</div>`;}
-  const rem=42-off-dim;
-  for(let i=1;i<=Math.max(0,rem);i++){const nm=m+1>11?0:m+1,ny=m+1>11?y+1:y;const hw=workouts.some(w=>w.day===i&&w.month===nm&&w.year===ny);h+=`<div class="cal-d other${hw?' has-w':''}" onclick="dayClick(${i},${nm},${ny})">${i}</div>`;}
-  document.getElementById('cal-body').innerHTML=h;
+  try{
+    const now=new Date();
+    const ML=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    const WD=['Domenica','Lunedi','Martedi','Mercoledi','Giovedi','Venerdi','Sabato'];
+    const DL=['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+    const y=now.getFullYear(),m=now.getMonth(),today=now.getDate();
+
+    const mlEl=document.getElementById('month-label');
+    const hdEl=document.getElementById('home-date');
+    const dnEl=document.getElementById('day-names');
+    const cbEl=document.getElementById('cal-body');
+    if(!mlEl||!hdEl||!dnEl||!cbEl) return;
+
+    mlEl.textContent=ML[m]+' '+y;
+    hdEl.textContent=WD[now.getDay()]+' '+today+' '+ML[m]+' '+y;
+    dnEl.innerHTML=DL.map(d=>'<div class="cal-dn">'+d+'</div>').join('');
+
+    const first=new Date(y,m,1).getDay();
+    const off=(first===0)?6:first-1;
+    const dim=new Date(y,m+1,0).getDate();
+    const prev=new Date(y,m,0).getDate();
+    let h='';
+    for(let i=off-1;i>=0;i--){
+      const pd=prev-i,pm=m-1<0?11:m-1,py=m-1<0?y-1:y;
+      const hw=workouts.some(function(w){return w.day===pd&&w.month===pm&&w.year===py;});
+      h+='<div class="cal-d other'+(hw?' has-w':'')+'" onclick="dayClick('+pd+','+pm+','+py+')">'+pd+'</div>';
+    }
+    for(let d=1;d<=dim;d++){
+      const isT=d===today;
+      const hw=workouts.some(function(w){return w.day===d&&w.month===m&&w.year===y;});
+      h+='<div class="cal-d'+(isT?' today':'')+(hw?' has-w':'')+'" onclick="dayClick('+d+','+m+','+y+')">'+d+'</div>';
+    }
+    const rem=42-off-dim;
+    for(let i=1;i<=Math.max(0,rem);i++){
+      const nm=m+1>11?0:m+1,ny=m+1>11?y+1:y;
+      const hw=workouts.some(function(w){return w.day===i&&w.month===nm&&w.year===ny;});
+      h+='<div class="cal-d other'+(hw?' has-w':'')+'" onclick="dayClick('+i+','+nm+','+ny+')">'+i+'</div>';
+    }
+    cbEl.innerHTML=h;
+  }catch(e){ console.error('buildCalendar error:',e); }
 }
 
 function dayClick(d,m,y){
@@ -521,9 +544,12 @@ function dayClick(d,m,y){
 }
 
 function renderAllWorkouts(){
-  const list=document.getElementById('workout-list-home');
-  if(workouts.length===0){list.innerHTML=`<div style="color:var(--dim);font-size:13px;">Tocca un giorno o crea un nuovo allenamento.</div>`;return;}
-  renderHomeList(workouts.slice().reverse());
+  try{
+    const list=document.getElementById('workout-list-home');
+    if(!list) return;
+    if(!workouts||workouts.length===0){list.innerHTML='<div style="color:var(--dim);font-size:13px;">Tocca un giorno o crea un nuovo allenamento.</div>';return;}
+    renderHomeList(workouts.slice().reverse());
+  }catch(e){console.error('renderAllWorkouts error:',e);}
 }
 
 function renderHomeList(list){
@@ -1102,10 +1128,17 @@ URL.revokeObjectURL(url);
 }
 
 /* ── INIT ── */
-try { load(); } catch(e) { console.warn(‘load error’, e); workouts = []; }
+function initApp(){
+try { load(); } catch(e) { console.warn(‘load error’,e); workouts=[]; }
 try { filterSugg(); } catch(e) {}
-try { buildCalendar(); } catch(e) { console.error(‘calendar error’, e); }
-try { renderAllWorkouts(); } catch(e) { console.error(‘render error’, e); }
+try { buildCalendar(); } catch(e) { console.error(‘calendar error’,e); }
+try { renderAllWorkouts(); } catch(e) { console.error(‘render error’,e); }
+}
+if(document.readyState===‘loading’){
+document.addEventListener(‘DOMContentLoaded’, initApp);
+} else {
+initApp();
+}
 </script>
 
 </body>
