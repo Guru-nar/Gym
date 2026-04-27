@@ -54,11 +54,16 @@ input::placeholder{color:var(--dim);}
 .active-ex-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;border:0.5px solid var(--border);cursor:pointer;}
 .prog-bar{height:4px;background:var(--card2);border-radius:2px;margin:8px 0 4px;}
 .prog-fill{height:100%;border-radius:2px;transition:width .3s;}
-.ex-sugg{padding:13px 0;border-bottom:0.5px solid #1e1e1e;color:#ddd;font-size:14px;cursor:pointer;}
+.edit-row{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:0.5px solid var(--border);display:flex;align-items:center;gap:10px;touch-action:none;user-select:none;}
+.edit-row.dragging{opacity:0.4;border:1.5px dashed var(--blue);}
+.edit-row.drag-over{border:1.5px solid var(--blue);background:#1a2a3a;}
+.drag-handle{color:var(--dim);font-size:22px;cursor:grab;padding:0 4px;flex-shrink:0;line-height:1;}
+
 @keyframes greenPulse{0%{background:#15803d}50%{background:#22c55e}100%{background:#15803d}}
 .alarm-screen{animation:greenPulse 0.7s infinite;}
-#mini-timer-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(--border);padding:10px 16px;align-items:center;gap:12px;}
+#mini-timer-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(–border);padding:10px 16px;align-items:center;gap:12px;}
 </style>
+
 </head>
 <body>
 <div class="app">
@@ -91,8 +96,9 @@ input::placeholder{color:var(--dim);}
 <div class="screen" id="s-workout">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-home')">&#8249;</button>
-    <div class="topbar-title" id="workout-title-display" onclick="renameWorkout()" style="cursor:pointer;border-bottom:1px dashed #444;max-width:200px;display:inline-block;">Allenamento</div>
+    <div class="topbar-title" id="workout-title-display" onclick="renameWorkout()" style="cursor:pointer;border-bottom:1px dashed #444;max-width:160px;display:inline-block;">Allenamento</div>
     <div style="color:var(--muted);font-size:12px;" id="workout-date-display"></div>
+    <button onclick="openEditMode()" style="border:none;background:var(--card2);border-radius:10px;padding:7px 12px;color:var(--muted);font-size:13px;cursor:pointer;flex-shrink:0;">Modifica</button>
   </div>
   <div class="scroll">
     <div id="workout-exercise-list"></div>
@@ -102,7 +108,25 @@ input::placeholder{color:var(--dim);}
   </div>
   <div class="bottom">
     <button class="btn btn-blue" onclick="startWorkout()">Inizia allenamento</button>
+    <button onclick="downloadPDF()" style="width:100%;border:0.5px solid var(--border);border-radius:14px;background:transparent;color:var(--muted);font-size:14px;font-weight:500;padding:14px;cursor:pointer;">Scarica PDF allenamento</button>
     <button class="btn btn-red" onclick="deleteCurrentWorkout()" style="font-size:13px;padding:12px;opacity:.7;">Elimina questo allenamento</button>
+  </div>
+</div>
+
+<!-- MODALITA' MODIFICA ORDINE -->
+
+<div class="screen" id="s-edit-mode">
+  <div class="topbar">
+    <button class="back-btn" onclick="cancelEditMode()">&#8249;</button>
+    <div class="topbar-title">Modifica esercizi</div>
+  </div>
+  <div class="scroll">
+    <div style="color:var(--muted);font-size:12px;margin-bottom:12px;">Trascina per riordinare · Rinomina o elimina</div>
+    <div id="edit-exercise-list"></div>
+  </div>
+  <div class="bottom">
+    <button class="btn btn-blue" onclick="saveEditMode()">Salva modifiche</button>
+    <button class="btn btn-dark" onclick="cancelEditMode()">Annulla</button>
   </div>
 </div>
 
@@ -849,6 +873,212 @@ document.addEventListener('visibilitychange',()=>{
     if(timerRemaining<=0){if(timerInterval)clearInterval(timerInterval);timerActive=false;showMiniBar(false);showAlarmScreen();}
   }
 });
+
+/* ═══════════════════════════════════════
+   MODALITA' MODIFICA (drag & rename & delete)
+═══════════════════════════════════════ */
+let editWorkingCopy = []; // copia temporanea durante la modifica
+let dragSrcIdx = null;
+
+function openEditMode() {
+  const w = workouts[currentWorkoutIdx];
+  editWorkingCopy = deepClone(w.exercises);
+  renderEditList();
+  goScreen('s-edit-mode');
+}
+
+function cancelEditMode() {
+  editWorkingCopy = [];
+  goScreen('s-workout');
+}
+
+function saveEditMode() {
+  workouts[currentWorkoutIdx].exercises = deepClone(editWorkingCopy);
+  save();
+  renderWorkoutScreen();
+  goScreen('s-workout');
+}
+
+function renderEditList() {
+  const list = document.getElementById('edit-exercise-list');
+  list.innerHTML = editWorkingCopy.map((ex, i) => {
+    const ic = ex.type === 'cardio';
+    const tag = ic ? '🏃' : '🏋️';
+    return `<div class="edit-row" id="erow-${i}" draggable="true"
+        ondragstart="dragStart(event,${i})"
+        ondragover="dragOver(event,${i})"
+        ondrop="dragDrop(event,${i})"
+        ondragend="dragEnd(event)"
+        ontouchstart="touchStart(event,${i})"
+        ontouchmove="touchMove(event)"
+        ontouchend="touchEnd(event,${i})">
+      <div class="drag-handle">&#8801;</div>
+      <div style="flex:1;min-width:0;">
+        <div style="color:var(--text);font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tag} ${ex.name}</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px;">${ic ? Math.round((ex.durationSeconds||600)/60)+' min cardio' : (ex.sets?ex.sets.length:0)+' set'}</div>
+      </div>
+      <button onclick="renameEditEx(${i})" style="border:none;background:#1e3a6e;color:#93c5fd;border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">&#9998;</button>
+      <button onclick="deleteEditEx(${i})" style="border:none;background:#2a1515;color:#f87171;border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">&#128465;</button>
+    </div>`;
+  }).join('');
+}
+
+function renameEditEx(idx) {
+  openRenameModal('Rinomina esercizio', editWorkingCopy[idx].name, n => {
+    editWorkingCopy[idx].name = n;
+    renderEditList();
+  });
+}
+
+function deleteEditEx(idx) {
+  showConfirm('Elimina esercizio', `Vuoi eliminare "${editWorkingCopy[idx].name}"?`, () => {
+    editWorkingCopy.splice(idx, 1);
+    renderEditList();
+  });
+}
+
+/* ── DRAG & DROP (mouse/desktop) ── */
+function dragStart(e, idx) {
+  dragSrcIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const r = document.getElementById('erow-'+idx); if(r) r.classList.add('dragging'); }, 0);
+}
+function dragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.edit-row').forEach(r => r.classList.remove('drag-over'));
+  const r = document.getElementById('erow-'+idx);
+  if(r && idx !== dragSrcIdx) r.classList.add('drag-over');
+}
+function dragDrop(e, idx) {
+  e.preventDefault();
+  if(dragSrcIdx === null || dragSrcIdx === idx) return;
+  const moved = editWorkingCopy.splice(dragSrcIdx, 1)[0];
+  editWorkingCopy.splice(idx, 0, moved);
+  dragSrcIdx = null;
+  renderEditList();
+}
+function dragEnd(e) {
+  dragSrcIdx = null;
+  document.querySelectorAll('.edit-row').forEach(r => { r.classList.remove('dragging'); r.classList.remove('drag-over'); });
+}
+
+/* ── TOUCH DRAG (mobile) ── */
+let touchDragIdx = null;
+let touchStartY = 0;
+let touchCurrentY = 0;
+
+function touchStart(e, idx) {
+  touchDragIdx = idx;
+  touchStartY = e.touches[0].clientY;
+  const r = document.getElementById('erow-'+idx);
+  if(r) r.classList.add('dragging');
+}
+function touchMove(e) {
+  if(touchDragIdx === null) return;
+  e.preventDefault();
+  touchCurrentY = e.touches[0].clientY;
+  // highlight target row
+  const el = document.elementFromPoint(e.touches[0].clientX, touchCurrentY);
+  const row = el ? el.closest('.edit-row') : null;
+  document.querySelectorAll('.edit-row').forEach(r => r.classList.remove('drag-over'));
+  if(row && row !== document.getElementById('erow-'+touchDragIdx)) row.classList.add('drag-over');
+}
+function touchEnd(e, idx) {
+  if(touchDragIdx === null) return;
+  const el = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+  const row = el ? el.closest('.edit-row') : null;
+  if(row) {
+    const targetId = row.id; // erow-N
+    const targetIdx = parseInt(targetId.replace('erow-',''));
+    if(!isNaN(targetIdx) && targetIdx !== touchDragIdx) {
+      const moved = editWorkingCopy.splice(touchDragIdx, 1)[0];
+      editWorkingCopy.splice(targetIdx, 0, moved);
+    }
+  }
+  touchDragIdx = null;
+  renderEditList();
+}
+
+/* ═══════════════════════════════════════
+   PDF DOWNLOAD
+═══════════════════════════════════════ */
+function downloadPDF() {
+  const w = workouts[currentWorkoutIdx];
+  if(!w) return;
+  const dateStr = w.day+'/'+String(w.month+1).padStart(2,'0')+'/'+w.year;
+
+  // Build HTML for PDF
+  let rows = '';
+  let rowNum = 0;
+  w.exercises.forEach(ex => {
+    const ic = ex.type === 'cardio';
+    if(ic) {
+      const dur = Math.floor((ex.durationSeconds||600)/60)+'\''+String((ex.durationSeconds||600)%60).padStart(2,'0')+'\"';
+      rowNum++;
+      rows += `<tr style="background:${rowNum%2===0?'#fff8f0':'#fff'};">
+        <td>${rowNum}</td>
+        <td><strong>${ex.name}</strong><br><small style="color:#ea580c;">CARDIO</small></td>
+        <td style="text-align:center;">—</td>
+        <td style="text-align:center;">${ex.intensity||0}</td>
+        <td style="text-align:center;">${dur}</td>
+        <td style="text-align:center;">—</td>
+        <td>${ex.note||''}</td>
+      </tr>`;
+    } else {
+      ex.sets.forEach((s, si) => {
+        rowNum++;
+        const rest = s.restSeconds||ex.restSeconds||90;
+        const restStr = rest >= 60 ? Math.floor(rest/60)+'\''+String(rest%60).padStart(2,'0')+'\"' : rest+'\"';
+        rows += `<tr style="background:${rowNum%2===0?'#f0f4ff':'#fff'};">
+          <td>${rowNum}</td>
+          <td>${si===0?`<strong>${ex.name}</strong>`:''}</td>
+          <td style="text-align:center;">${si+1}</td>
+          <td style="text-align:center;">${s.kg} kg</td>
+          <td style="text-align:center;">${s.reps} reps</td>
+          <td style="text-align:center;">${restStr}</td>
+          <td>${si===0&&ex.note?ex.note:''}</td>
+        </tr>`;
+      });
+    }
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;padding:24px;color:#111;max-width:800px;margin:0 auto;}
+    h1{font-size:22px;margin-bottom:4px;}
+    .sub{color:#666;font-size:13px;margin-bottom:20px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{background:#1a1a1a;color:#fff;padding:10px 8px;text-align:left;}
+    td{padding:9px 8px;border-bottom:0.5px solid #e0e0e0;vertical-align:top;}
+    .footer{margin-top:24px;font-size:11px;color:#999;text-align:center;}
+    @media print{body{padding:12px;} button{display:none;}}
+  </style></head><body>
+
+  <h1>💪 ${w.name}</h1>
+  <div class="sub">Data: ${dateStr} &nbsp;·&nbsp; ${w.exercises.length} esercizi &nbsp;·&nbsp; Generato con GymGuru</div>
+  <table>
+    <thead><tr>
+      <th>#</th><th>Esercizio</th><th style="text-align:center;">Set</th>
+      <th style="text-align:center;">Kg / Intensità</th>
+      <th style="text-align:center;">Reps / Durata</th>
+      <th style="text-align:center;">Recupero</th>
+      <th>Note</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">GymGuru · ${dateStr}</div>
+  <br><button onclick="window.print()" style="padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Stampa / Salva PDF</button>
+  </body></html>`;
+
+const blob = new Blob([html], {type:‘text/html’});
+const url = URL.createObjectURL(blob);
+const a = document.createElement(‘a’);
+a.href = url;
+a.download = `GymGuru_${w.name.replace(/\s+/g,'_')}_${dateStr.replace(/\//g,'-')}.html`;
+a.click();
+URL.revokeObjectURL(url);
+}
 
 /* ── INIT ── */
 load();filterSugg();buildCalendar();renderAllWorkouts();
