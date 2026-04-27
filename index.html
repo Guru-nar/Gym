@@ -419,10 +419,31 @@ const TEMPLATES=[
 function save(){try{localStorage.setItem('gg_w',JSON.stringify(workouts));localStorage.setItem('gg_t',JSON.stringify(TEMPLATES));}catch(e){}}
 function load(){
   try{
-    const w=localStorage.getItem('gg_w');if(w)workouts=JSON.parse(w);
+    const w=localStorage.getItem('gg_w');
+    if(w){
+      const parsed=JSON.parse(w);
+      if(Array.isArray(parsed)){
+        parsed.forEach(workout=>{
+          if(!Array.isArray(workout.exercises)) workout.exercises=[];
+          workout.exercises.forEach(ex=>{
+            if(!ex.type) ex.type=Array.isArray(ex.sets)?'forza':'cardio';
+            if(ex.type==='forza'&&!Array.isArray(ex.sets)) ex.sets=[];
+            if(ex.type==='cardio'&&!ex.durationSeconds) ex.durationSeconds=600;
+          });
+        });
+        workouts=parsed;
+      }
+    }
     const t=localStorage.getItem('gg_t');
-    if(t){const p=JSON.parse(t);p.forEach((x,i)=>{if(TEMPLATES[i])TEMPLATES[i]=x;});}
-  }catch(e){}
+    if(t){
+      const p=JSON.parse(t);
+      if(Array.isArray(p)) p.forEach((x,i)=>{if(TEMPLATES[i])TEMPLATES[i]=x;});
+    }
+  }catch(e){
+    console.warn('load failed, resetting',e);
+    workouts=[];
+    try{localStorage.removeItem('gg_w');localStorage.removeItem('gg_t');}catch(e2){}
+  }
 }
 
 /* ── AUDIO ── */
@@ -1081,7 +1102,10 @@ URL.revokeObjectURL(url);
 }
 
 /* ── INIT ── */
-load();filterSugg();buildCalendar();renderAllWorkouts();
+try { load(); } catch(e) { console.warn(‘load error’, e); workouts = []; }
+try { filterSugg(); } catch(e) {}
+try { buildCalendar(); } catch(e) { console.error(‘calendar error’, e); }
+try { renderAllWorkouts(); } catch(e) { console.error(‘render error’, e); }
 </script>
 
 </body>
