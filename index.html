@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -48,25 +49,27 @@ input::placeholder{color:var(--dim);}
 .set-num{color:var(--muted);font-size:14px;text-align:center;}
 .chk{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--dim);background:transparent;cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center;}
 .chk.done{background:var(--green);border-color:var(--green);}
-.chk.done::after{content:'checkmark';color:#fff;font-size:14px;font-weight:700;}
+.chk.done::after{content:'\2713';color:#fff;font-size:16px;font-weight:700;}
 .del-btn{width:28px;height:28px;border-radius:50%;border:none;background:#2a1515;color:#f87171;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto;flex-shrink:0;}
 .active-ex-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;border:0.5px solid var(--border);cursor:pointer;}
 .prog-bar{height:4px;background:var(--card2);border-radius:2px;margin:8px 0 4px;}
 .prog-fill{height:100%;border-radius:2px;transition:width .3s;}
-.edit-row{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:0.5px solid var(--border);display:flex;align-items:center;gap:10px;touch-action:none;user-select:none;}
+.edit-row{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:0.5px solid var(--border);display:flex;align-items:center;gap:10px;user-select:none;}
 .edit-row.dragging{opacity:0.4;border:1.5px dashed var(--blue);}
 .edit-row.drag-over{border:1.5px solid var(--blue);background:#1a2a3a;}
-.drag-handle{color:var(--dim);font-size:22px;cursor:grab;padding:0 4px;flex-shrink:0;line-height:1;}
+.drag-handle{color:var(--muted);font-size:26px;cursor:grab;padding:4px 6px;flex-shrink:0;line-height:1;touch-action:none;}
 
 @keyframes greenPulse{0%{background:#15803d}50%{background:#22c55e}100%{background:#15803d}}
 .alarm-screen{animation:greenPulse 0.7s infinite;}
-#mini-timer-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(--border);padding:10px 16px;align-items:center;gap:12px;}
+#mini-timer-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(–border);padding:10px 16px;align-items:center;gap:12px;}
 </style>
+
 </head>
 <body>
 <div class="app">
 
 <!-- HOME -->
+
 <div class="screen active" id="s-home">
   <div class="topbar">
     <div style="flex:1">
@@ -89,6 +92,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLENAMENTO CONFIG -->
+
 <div class="screen" id="s-workout">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-home')">&#8249;</button>
@@ -110,6 +114,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODALITA' MODIFICA ORDINE -->
+
 <div class="screen" id="s-edit-mode">
   <div class="topbar">
     <button class="back-btn" onclick="cancelEditMode()">&#8249;</button>
@@ -126,6 +131,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLENAMENTO ATTIVO -->
+
 <div class="screen" id="s-active">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-workout')">&#8249;</button>
@@ -139,6 +145,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- DETTAGLIO FORZA -->
+
 <div class="screen" id="s-ex-detail">
   <div class="topbar">
     <button class="back-btn" onclick="backToActive()">&#8249;</button>
@@ -179,6 +186,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- DETTAGLIO CARDIO -->
+
 <div class="screen" id="s-cardio-detail">
   <div class="topbar">
     <button class="back-btn" onclick="backToActive()">&#8249;</button>
@@ -223,6 +231,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- TIMER PAUSA -->
+
 <div class="screen" id="s-timer">
   <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;">
     <div class="topbar">
@@ -251,6 +260,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- TIMER CARDIO -->
+
 <div class="screen" id="s-cardio-timer">
   <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;">
     <div class="topbar">
@@ -278,6 +288,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLARME VERDE -->
+
 <div class="screen" id="s-alarm">
   <div class="alarm-screen" style="display:flex;flex-direction:column;height:100vh;align-items:center;justify-content:center;padding:32px 24px;">
     <div style="font-size:80px;margin-bottom:16px;">💪</div>
@@ -292,6 +303,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MINI TIMER BAR -->
+
 <div id="mini-timer-bar">
   <div style="width:40px;height:40px;border-radius:50%;border:2.5px solid var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
     <span id="mini-timer-txt" style="color:var(--blue);font-size:11px;font-weight:700;">1:30</span>
@@ -304,6 +316,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL AGGIUNGI ESERCIZIO -->
+
 <div id="modal-add-ex" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeModal()"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;max-height:90vh;overflow-y:auto;">
@@ -319,6 +332,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL NUOVO ALLENAMENTO -->
+
 <div id="modal-new-workout" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeNewWorkoutModal()"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;max-height:90vh;overflow-y:auto;">
@@ -334,6 +348,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL RINOMINA -->
+
 <div id="modal-rename" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px;">
     <div style="background:#1a1a1a;border-radius:20px;padding:24px;width:100%;max-width:340px;border:0.5px solid #333;">
@@ -348,6 +363,7 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL CONFERMA -->
+
 <div id="modal-confirm" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px;">
     <div style="background:#1a1a1a;border-radius:20px;padding:24px;width:100%;max-width:340px;border:0.5px solid #333;">
@@ -935,22 +951,21 @@ function renderEditList() {
   list.innerHTML = editWorkingCopy.map((ex, i) => {
     const ic = ex.type === 'cardio';
     const tag = ic ? '🏃' : '🏋️';
-    return `<div class="edit-row" id="erow-${i}" draggable="true"
-        ondragstart="dragStart(event,${i})"
-        ondragover="dragOver(event,${i})"
-        ondrop="dragDrop(event,${i})"
-        ondragend="dragEnd(event)"
-        ontouchstart="touchStart(event,${i})"
-        ontouchmove="touchMove(event)"
-        ontouchend="touchEnd(event,${i})">
-      <div class="drag-handle">&#8801;</div>
-      <div style="flex:1;min-width:0;">
-        <div style="color:var(--text);font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tag} ${ex.name}</div>
-        <div style="color:var(--muted);font-size:11px;margin-top:2px;">${ic ? Math.round((ex.durationSeconds||600)/60)+' min cardio' : (ex.sets?ex.sets.length:0)+' set'}</div>
-      </div>
-      <button onclick="renameEditEx(${i})" style="border:none;background:#1e3a6e;color:#93c5fd;border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">&#9998;</button>
-      <button onclick="deleteEditEx(${i})" style="border:none;background:#2a1515;color:#f87171;border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">&#128465;</button>
-    </div>`;
+    const setsSub = ic ? Math.round((ex.durationSeconds||600)/60)+' min cardio' : (ex.sets?ex.sets.length:0)+' set';
+    return '<div class="edit-row" id="erow-'+i+'" ondragover="dragOver(event,'+i+')" ondrop="dragDrop(event,'+i+')">'
+      + '<div class="drag-handle" draggable="true"'
+      + ' ondragstart="dragStart(event,'+i+')"'
+      + ' ondragend="dragEnd(event)"'
+      + ' ontouchstart="touchStart(event,'+i+')"'
+      + ' ontouchmove="touchMove(event)"'
+      + ' ontouchend="touchEnd(event,'+i+')">&#8801;</div>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="color:var(--text);font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+tag+' '+ex.name+'</div>'
+      + '<div style="color:var(--muted);font-size:11px;margin-top:2px;">'+setsSub+'</div>'
+      + '</div>'
+      + '<button onclick="renameEditEx('+i+')" style="border:none;background:#1e3a6e;color:#93c5fd;border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">&#9998;</button>'
+      + '<button onclick="deleteEditEx('+i+')" style="border:none;background:#2a1515;color:#f87171;border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">&#128465;</button>'
+      + '</div>';
   }).join('');
 }
 
@@ -1000,8 +1015,10 @@ let touchStartY = 0;
 let touchCurrentY = 0;
 
 function touchStart(e, idx) {
+  // Only drag if touch started on the handle
   touchDragIdx = idx;
   touchStartY = e.touches[0].clientY;
+  e.preventDefault(); // prevent scroll only when handle is touched
   const r = document.getElementById('erow-'+idx);
   if(r) r.classList.add('dragging');
 }
@@ -1009,10 +1026,9 @@ function touchMove(e) {
   if(touchDragIdx === null) return;
   e.preventDefault();
   touchCurrentY = e.touches[0].clientY;
-  // highlight target row
   const el = document.elementFromPoint(e.touches[0].clientX, touchCurrentY);
   const row = el ? el.closest('.edit-row') : null;
-  document.querySelectorAll('.edit-row').forEach(r => r.classList.remove('drag-over'));
+  document.querySelectorAll('.edit-row').forEach(function(r){ r.classList.remove('drag-over'); });
   if(row && row !== document.getElementById('erow-'+touchDragIdx)) row.classList.add('drag-over');
 }
 function touchEnd(e, idx) {
@@ -1020,14 +1036,14 @@ function touchEnd(e, idx) {
   const el = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
   const row = el ? el.closest('.edit-row') : null;
   if(row) {
-    const targetId = row.id; // erow-N
-    const targetIdx = parseInt(targetId.replace('erow-',''));
+    const targetIdx = parseInt(row.id.replace('erow-',''));
     if(!isNaN(targetIdx) && targetIdx !== touchDragIdx) {
       const moved = editWorkingCopy.splice(touchDragIdx, 1)[0];
       editWorkingCopy.splice(targetIdx, 0, moved);
     }
   }
   touchDragIdx = null;
+  document.querySelectorAll('.edit-row').forEach(function(r){ r.classList.remove('dragging'); r.classList.remove('drag-over'); });
   renderEditList();
 }
 
@@ -1085,6 +1101,7 @@ function downloadPDF() {
     .footer{margin-top:24px;font-size:11px;color:#999;text-align:center;}
     @media print{body{padding:12px;} button{display:none;}}
   </style></head><body>
+
   <h1>💪 ${w.name}</h1>
   <div class="sub">Data: ${dateStr} &nbsp;·&nbsp; ${w.exercises.length} esercizi &nbsp;·&nbsp; Generato con GymGuru</div>
   <table>
@@ -1101,27 +1118,28 @@ function downloadPDF() {
   <br><button onclick="window.print()" style="padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Stampa / Salva PDF</button>
   </body></html>`;
 
-  const blob = new Blob([html], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `GymGuru_${w.name.replace(/\s+/g,'_')}_${dateStr.replace(/\//g,'-')}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
+const blob = new Blob([html], {type:‘text/html’});
+const url = URL.createObjectURL(blob);
+const a = document.createElement(‘a’);
+a.href = url;
+a.download = `GymGuru_${w.name.replace(/\s+/g,'_')}_${dateStr.replace(/\//g,'-')}.html`;
+a.click();
+URL.revokeObjectURL(url);
 }
 
 /* ── INIT ── */
 function initApp(){
-  try { load(); } catch(e) { console.warn('load error',e); workouts=[]; }
-  try { filterSugg(); } catch(e) {}
-  try { buildCalendar(); } catch(e) { console.error('calendar error',e); }
-  try { renderAllWorkouts(); } catch(e) { console.error('render error',e); }
+try { load(); } catch(e) { console.warn(‘load error’,e); workouts=[]; }
+try { filterSugg(); } catch(e) {}
+try { buildCalendar(); } catch(e) { console.error(‘calendar error’,e); }
+try { renderAllWorkouts(); } catch(e) { console.error(‘render error’,e); }
 }
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded', initApp);
+if(document.readyState===‘loading’){
+document.addEventListener(‘DOMContentLoaded’, initApp);
 } else {
-  initApp();
+initApp();
 }
 </script>
+
 </body>
 </html>
