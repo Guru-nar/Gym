@@ -78,6 +78,7 @@ input::placeholder{color:var(--dim);}
     </div>
   </div>
   <div class="scroll">
+    <div id="debug-error" style="display:none;background:#7f1d1d;color:#fca5a5;padding:12px;border-radius:10px;font-size:12px;margin-bottom:12px;word-break:break-all;"></div>
     <div style="background:var(--card);border-radius:18px;padding:14px;margin-bottom:20px;border:0.5px solid var(--border);">
       <div style="text-align:center;color:var(--muted);font-size:13px;padding:4px 0 12px;" id="month-label"></div>
       <div class="cal-grid" id="day-names"></div>
@@ -378,6 +379,14 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <script>
+window.onerror = function(msg, src, line, col, err) {
+  var el = document.getElementById('debug-error');
+  if(el) {
+    el.style.display = 'block';
+    el.textContent = 'ERRORE JS: ' + msg + ' (riga ' + line + ')';
+  }
+  return false;
+};
 const SUGGS_FORZA=['Panca piana','Panca inclinata','Croci manubri','Dips','Push up','Squat bilanciere','Leg press','Affondi','Stacco da terra','Leg curl','Lat machine','Rematore bilanciere','Trazioni','Curl bicipiti','Hammer curl','Tricipiti cavi','French press','Shoulder press','Alzate laterali','Plank','Calf raises','Cable fly','Face pull','Shrug','Hip thrust','Romanian deadlift'];
 const SUGGS_CARDIO=['Tapis roulant','Bici','Cyclette','Ellittica','Vogatore','Scalatore','Corda'];
 
@@ -1128,11 +1137,16 @@ URL.revokeObjectURL(url);
 }
 
 /* ── INIT ── */
+function showDebugError(msg) {
+var el = document.getElementById(‘debug-error’);
+if(el) { el.style.display=‘block’; el.textContent = msg; }
+}
+
 function initApp(){
-try { load(); } catch(e) { console.warn(‘load error’,e); workouts=[]; }
-try { filterSugg(); } catch(e) {}
-try { buildCalendar(); } catch(e) { console.error(‘calendar error’,e); }
-try { renderAllWorkouts(); } catch(e) { console.error(‘render error’,e); }
+try { load(); } catch(e) { showDebugError(’LOAD: ’+e.message); workouts=[]; }
+try { filterSugg(); } catch(e) { showDebugError(’SUGG: ’+e.message); }
+try { buildCalendar(); } catch(e) { showDebugError(’CAL: ’+e.message); }
+try { renderAllWorkouts(); } catch(e) { showDebugError(’RENDER: ’+e.message); }
 }
 if(document.readyState===‘loading’){
 document.addEventListener(‘DOMContentLoaded’, initApp);
