@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test</title>
+<style>
+body{background:#0f0f0f;color:#fff;font-family:sans-serif;padding:20px;}
+.ok{background:#16a34a;padding:12px;border-radius:8px;margin-bottom:10px;}
+.err{background:#991b1b;padding:12px;border-radius:8px;margin-bottom:10px;word-break:break-all;}
+</style>
+</head>
+<body>
+<h2>Diagnosi GymGuru</h2>
+<div id="out"></div>
+<script>
+var out = document.getElementById('out');
+function ok(msg){ out.innerHTML += '<div class="ok">OK: ' + msg + '</div>'; }
+function err(msg){ out.innerHTML += '<div class="err">ERRORE: ' + msg + '</div>'; }
+
+// Test 1: JS funziona
+ok('JavaScript funziona');
+
+// Test 2: localStorage
+try {
+  localStorage.setItem('test','1');
+  localStorage.removeItem('test');
+  ok('localStorage funziona');
+} catch(e) { err('localStorage: ' + e.message); }
+
+// Test 3: Date
+try {
+  var d = new Date();
+  ok('Data: ' + d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear());
+} catch(e) { err('Date: ' + e.message); }
+
+// Test 4: Array methods
+try {
+  var a = [1,2,3];
+  var b = a.filter(function(x){ return x > 1; });
+  ok('Array.filter funziona: ' + b);
+} catch(e) { err('Array: ' + e.message); }
+
+// Test 5: JSON
+try {
+  var j = JSON.stringify({a:1});
+  var p = JSON.parse(j);
+  ok('JSON funziona');
+} catch(e) { err('JSON: ' + e.message); }
+
+// Test 6: DOM
+try {
+  var el = document.createElement('div');
+  el.textContent = 'test';
+  ok('DOM funziona');
+} catch(e) { err('DOM: ' + e.message); }
+
+ok('Tutti i test completati - il problema e\' nel file index.html principale');
+</script>
+</body>
+</html>
