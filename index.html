@@ -410,9 +410,26 @@ function mkEx(n,reps,sets,rest){
 function mkCardio(n,dur){
   return {name:n,type:'cardio',durationSeconds:dur,intensity:0,note:'',done:false};
 }
+function mkExCustom(n,setsData,rest){
+  var sets=[];
+  for(var i=0;i<setsData.length;i++) sets.push({kg:setsData[i][0],reps:setsData[i][1],done:false,restSeconds:rest});
+  return {name:n,type:'forza',restSeconds:rest,note:'',sets:sets};
+}
 var TEMPLATES=[
   {name:'Allenamento N1',exercises:[mkEx('Panca piana',4,3,90),mkEx('Chest press',10,2,90),mkEx('Panca inclinata',5,2,90),mkEx('Aperture',10,2,90),mkEx('Chest press',8,2,90),mkEx('Cavi busto a 90',10,2,90),mkEx('Bicipiti manubri',6,3,75),mkEx('A martello',12,3,75),mkEx('Leg curl prono',20,3,60),mkEx('Step up',10,3,60)]},
-  {name:'Allenamento N2',exercises:[mkEx('Pulley',6,3,90),mkEx('Pulley a 45',10,2,90),mkEx('Lat stretta',6,2,90),mkEx('Row Panatta',10,2,90),mkEx('Sbarra',6,2,90),mkEx('Row tirate mento KL',10,3,90),mkEx('Tricipiti push down',6,3,75),mkEx('French press bilanciere',20,3,30),mkEx('Corda',12,2,75),mkEx('Affondi',10,3,30)]},
+  {name:'Allenamento N2',exercises:[
+    mkCardio('Tappeto',600),
+    mkExCustom('Lat machine',[[45,8],[50,8],[55,8]],90),
+    mkExCustom('Pulley a 90',[[45,8],[50,8],[55,8],[60,8]],90),
+    mkExCustom('Lat stretta',[[45,8],[50,8],[55,6]],90),
+    mkExCustom('Row Panatta',[[30,8],[35,8],[40,8]],90),
+    mkExCustom('Sbarra',[[0,0]],90),
+    mkExCustom('Push down',[[23,10],[27,8],[32,6]],90),
+    mkExCustom('French press (bilanciere)',[[0,0]],90),
+    mkExCustom('Corda',[[0,0]],90),
+    mkExCustom('Affondi',[[0,0]],90),
+    mkCardio('Tappeto',600)
+  ]},
   {name:'Allenamento N3',exercises:[mkEx('Spalle alzate lat',6,3,60),mkEx('Alzate 90 ai cavi',6,3,60),mkEx('Shoulder press',6,3,60),mkEx('Scrollate M.Power',6,4,60),mkEx('Squat',8,4,90),mkEx('Leg ext',8,2,60),mkEx('Addome su panca',12,3,30),mkEx('Polpacci',20,4,60)]}
 ];
 
