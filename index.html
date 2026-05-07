@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -61,15 +60,13 @@ input::placeholder{color:var(--dim);}
 
 @keyframes greenPulse{0%{background:#15803d}50%{background:#22c55e}100%{background:#15803d}}
 .alarm-screen{animation:greenPulse 0.7s infinite;}
-#mini-timer-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(–border);padding:10px 16px;align-items:center;gap:12px;}
+#mini-timer-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(--border);padding:10px 16px;align-items:center;gap:12px;}
 </style>
-
 </head>
 <body>
 <div class="app">
 
 <!-- HOME -->
-
 <div class="screen active" id="s-home">
   <div class="topbar">
     <div style="flex:1">
@@ -93,7 +90,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLENAMENTO CONFIG -->
-
 <div class="screen" id="s-workout">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-home')">&#8249;</button>
@@ -115,7 +111,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODALITA' MODIFICA ORDINE -->
-
 <div class="screen" id="s-edit-mode">
   <div class="topbar">
     <button class="back-btn" onclick="cancelEditMode()">&#8249;</button>
@@ -132,7 +127,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLENAMENTO ATTIVO -->
-
 <div class="screen" id="s-active">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-workout')">&#8249;</button>
@@ -146,7 +140,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- DETTAGLIO FORZA -->
-
 <div class="screen" id="s-ex-detail">
   <div class="topbar">
     <button class="back-btn" onclick="backToActive()">&#8249;</button>
@@ -187,7 +180,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- DETTAGLIO CARDIO -->
-
 <div class="screen" id="s-cardio-detail">
   <div class="topbar">
     <button class="back-btn" onclick="backToActive()">&#8249;</button>
@@ -232,7 +224,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- TIMER PAUSA -->
-
 <div class="screen" id="s-timer">
   <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;">
     <div class="topbar">
@@ -261,7 +252,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- TIMER CARDIO -->
-
 <div class="screen" id="s-cardio-timer">
   <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;">
     <div class="topbar">
@@ -289,7 +279,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- ALLARME VERDE -->
-
 <div class="screen" id="s-alarm">
   <div class="alarm-screen" style="display:flex;flex-direction:column;height:100vh;align-items:center;justify-content:center;padding:32px 24px;">
     <div style="font-size:80px;margin-bottom:16px;">💪</div>
@@ -304,7 +293,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MINI TIMER BAR -->
-
 <div id="mini-timer-bar">
   <div style="width:40px;height:40px;border-radius:50%;border:2.5px solid var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
     <span id="mini-timer-txt" style="color:var(--blue);font-size:11px;font-weight:700;">1:30</span>
@@ -317,7 +305,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL AGGIUNGI ESERCIZIO -->
-
 <div id="modal-add-ex" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeModal()"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;max-height:90vh;overflow-y:auto;">
@@ -333,7 +320,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL NUOVO ALLENAMENTO -->
-
 <div id="modal-new-workout" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeNewWorkoutModal()"></div>
   <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:24px 20px 48px;max-height:90vh;overflow-y:auto;">
@@ -349,7 +335,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL RINOMINA -->
-
 <div id="modal-rename" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px;">
     <div style="background:#1a1a1a;border-radius:20px;padding:24px;width:100%;max-width:340px;border:0.5px solid #333;">
@@ -364,7 +349,6 @@ input::placeholder{color:var(--dim);}
 </div>
 
 <!-- MODAL CONFERMA -->
-
 <div id="modal-confirm" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:300;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px;">
     <div style="background:#1a1a1a;border-radius:20px;padding:24px;width:100%;max-width:340px;border:0.5px solid #333;">
@@ -1131,33 +1115,32 @@ function downloadPDF(){
     }
   }
   var content='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:24px;color:#111;max-width:800px;margin:0 auto;}h1{font-size:22px;margin-bottom:4px;}.sub{color:#666;font-size:13px;margin-bottom:20px;}table{width:100%;border-collapse:collapse;font-size:13px;}th{background:#1a1a1a;color:#fff;padding:10px 8px;text-align:left;}td{padding:9px 8px;border-bottom:0.5px solid #e0e0e0;vertical-align:top;}.footer{margin-top:24px;font-size:11px;color:#999;text-align:center;}@media print{button{display:none;}}</style></head><body>';
-
-content+=’<h1>GymGuru - ‘+escHtml(w.name)+’</h1>’;
-content+=’<div class="sub">Data: ‘+ds+’  ·  ‘+w.exercises.length+’ esercizi  ·  Generato con GymGuru</div>’;
-content+=’<table><thead><tr><th>#</th><th>Esercizio</th><th style="text-align:center;">Set</th><th style="text-align:center;">Kg / Int.</th><th style="text-align:center;">Reps / Durata</th><th style="text-align:center;">Recupero</th><th>Note</th></tr></thead><tbody>’+rows+’</tbody></table>’;
-content+=’<div class="footer">GymGuru - ‘+ds+’</div><br><button onclick="window.print()" style="padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Stampa / Salva PDF</button>’;
-content+=’</body></html>’;
-var blob=new Blob([content],{type:‘text/html’});
-var url=URL.createObjectURL(blob);
-var a=document.createElement(‘a’);
-a.href=url; a.download=‘GymGuru_’+w.name.replace(/\s+/g,’*’)+’*’+ds.replace(///g,’-’)+’.html’;
-a.click(); URL.revokeObjectURL(url);
+  content+='<h1>GymGuru - '+escHtml(w.name)+'</h1>';
+  content+='<div class="sub">Data: '+ds+' &nbsp;&#183;&nbsp; '+w.exercises.length+' esercizi &nbsp;&#183;&nbsp; Generato con GymGuru</div>';
+  content+='<table><thead><tr><th>#</th><th>Esercizio</th><th style="text-align:center;">Set</th><th style="text-align:center;">Kg / Int.</th><th style="text-align:center;">Reps / Durata</th><th style="text-align:center;">Recupero</th><th>Note</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  content+='<div class="footer">GymGuru - '+ds+'</div><br><button onclick="window.print()" style="padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Stampa / Salva PDF</button>';
+  content+='</body></html>';
+  var blob=new Blob([content],{type:'text/html'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='GymGuru_'+w.name.replace(/\s+/g,'_')+'_'+ds.replace(/\//g,'-')+'.html';
+  a.click(); URL.revokeObjectURL(url);
 }
 
 /* DEBUG */
-function showDebugError(msg){ var el=document.getElementById(‘debug-error’); if(el){el.style.display=‘block’;el.textContent=msg;} }
+function showDebugError(msg){ var el=document.getElementById('debug-error'); if(el){el.style.display='block';el.textContent=msg;} }
 
 /* INIT */
 function initApp(){
-try{ load(); }catch(e){ showDebugError(’LOAD: ’+e.message); workouts=[]; }
-try{ filterSugg(); }catch(e){}
-try{ buildCalendar(); }catch(e){ showDebugError(’CAL: ’+e.message); }
-try{ renderAllWorkouts(); }catch(e){ showDebugError(’RENDER: ’+e.message); }
+  try{ load(); }catch(e){ showDebugError('LOAD: '+e.message); workouts=[]; }
+  try{ filterSugg(); }catch(e){}
+  try{ buildCalendar(); }catch(e){ showDebugError('CAL: '+e.message); }
+  try{ renderAllWorkouts(); }catch(e){ showDebugError('RENDER: '+e.message); }
 }
-if(document.readyState===‘loading’){
-document.addEventListener(‘DOMContentLoaded’,initApp);
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',initApp);
 } else {
-initApp();
+  initApp();
 }
 
 </script>
