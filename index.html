@@ -955,7 +955,18 @@ function dayClick(d,m,y){
 }
 function renderHomeList(list,isToday,cd,cm,cy){
   var c=document.getElementById('workout-list-home');if(!c)return;
-  if(list.length===0){c.innerHTML='<div style="color:var(--dim);font-size:13px;margin-bottom:12px;">Nessun allenamento'+(isToday?' oggi.':' in questo giorno.')+'</div><button class="btn btn-blue" style="padding:12px;" onclick="openNewWorkout('+(cd||'')+','+(cm||'')+','+(cy||'')+')">+ Crea allenamento</button>';return;}
+  /* Il pulsante "Nuovo allenamento" in fondo crea sempre per OGGI.
+     Qui dentro mostro un pulsante solo quando stai guardando un altro giorno,
+     perche serve a creare per QUEL giorno: altrimenti sarebbero due pulsanti
+     identici uno sopra l'altro. */
+  var btnAltroGiorno='';
+  if(!isToday&&cd!==undefined){
+    btnAltroGiorno='<button class="btn btn-blue" style="padding:12px;font-size:14px;" onclick="openNewWorkout('+cd+','+cm+','+cy+')">+ Crea allenamento per il '+cd+'/'+pad(cm+1)+'</button>';
+  }
+  if(list.length===0){
+    c.innerHTML='<div style="color:var(--dim);font-size:13px;margin-bottom:'+(btnAltroGiorno?'12px':'4px')+';">Nessun allenamento'+(isToday?' oggi.':' in questo giorno.')+'</div>'+btnAltroGiorno;
+    return;
+  }
   var html='';
   for(var x=0;x<list.length;x++){
     var w=list[x];var i=workouts.indexOf(w);
@@ -967,6 +978,9 @@ function renderHomeList(list,isToday,cd,cm,cy){
     html+='<button onclick="event.stopPropagation();askDeleteWorkout('+i+')" style="position:absolute;right:0;top:0;bottom:0;width:60px;border:none;background:#7f1d1d;border-radius:0 14px 14px 0;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;">Elimina</button>';
     html+='</div>';
   }
+  /* su un altro giorno il pulsante va anche sotto la lista, altrimenti
+     non avresti modo di aggiungere un secondo allenamento a quel giorno */
+  if(btnAltroGiorno)html+='<div style="margin-top:6px;">'+btnAltroGiorno+'</div>';
   c.innerHTML=html;
 }
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
