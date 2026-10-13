@@ -17,8 +17,11 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;}
 :root{--blue:#2563eb;--green:#16a34a;--orange:#ea580c;--bg:#0f0f0f;--card:#1a1a1a;--card2:#222;--border:#2a2a2a;--text:#fff;--muted:#888;--dim:#444;--red:#991b1b;}
 html,body{background:var(--bg);height:100%;overflow:hidden;}
-.app{background:var(--bg);width:100%;height:100vh;overflow:hidden;position:relative;}
-.screen{display:none;flex-direction:column;height:100vh;background:var(--bg);position:absolute;top:0;left:0;width:100%;}
+/* 100dvh: su Android la barra degli indirizzi di Chrome rende 100vh piu alto
+   dello schermo visibile e i pulsanti in basso finiscono fuori. dvh risolve. */
+.app{background:var(--bg);width:100%;height:100vh;height:100dvh;overflow:hidden;position:relative;}
+.screen{display:none;flex-direction:column;height:100vh;height:100dvh;background:var(--bg);position:absolute;top:0;left:0;width:100%;}
+.fullcol{display:flex;flex-direction:column;height:100vh;height:100dvh;background:#0a0a0a;}
 .screen.active{display:flex;}
 .topbar{padding:52px 20px 12px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
 .topbar-title{font-size:18px;font-weight:600;color:var(--text);flex:1;}
@@ -42,9 +45,9 @@ html,body{background:var(--bg);height:100%;overflow:hidden;}
 .tag{font-size:11px;padding:3px 8px;border-radius:6px;font-weight:500;}
 .tag-blue{background:#1e3a6e;color:#93c5fd;}
 .tag-orange{background:#431407;color:#fb923c;}
-input[type=number]{background:var(--card2);border:0.5px solid var(--border);border-radius:8px;color:var(--blue);font-size:17px;font-weight:600;text-align:center;padding:8px 4px;width:100%;outline:none;-webkit-appearance:none;}
-input[type=text]{background:var(--card2);border:0.5px solid var(--border);border-radius:10px;color:#fff;font-size:15px;padding:12px 14px;width:100%;outline:none;-webkit-appearance:none;}
-input[type=date]{background:#2a2a2a;border:0.5px solid #444;border-radius:10px;color:#fff;font-size:15px;padding:12px 14px;width:100%;outline:none;color-scheme:dark;-webkit-appearance:none;}
+input[type=number]{background:var(--card2);border:0.5px solid var(--border);border-radius:8px;color:var(--blue);font-size:17px;font-weight:600;text-align:center;padding:8px 4px;width:100%;outline:none;-webkit-appearance:none;appearance:none;}
+input[type=text]{background:var(--card2);border:0.5px solid var(--border);border-radius:10px;color:#fff;font-size:15px;padding:12px 14px;width:100%;outline:none;-webkit-appearance:none;appearance:none;}
+input[type=date]{background:#2a2a2a;border:0.5px solid #444;border-radius:10px;color:#fff;font-size:15px;padding:12px 14px;width:100%;outline:none;color-scheme:dark;-webkit-appearance:none;appearance:none;}
 input::placeholder{color:var(--dim);}
 .set-row{display:grid;grid-template-columns:32px 1fr 1fr 36px 32px;gap:5px;padding:9px 0;border-bottom:0.5px solid #1e1e1e;align-items:center;}
 .set-hdr{display:grid;grid-template-columns:32px 1fr 1fr 36px 32px;gap:5px;padding:8px 0;border-bottom:0.5px solid var(--border);}
@@ -68,13 +71,82 @@ input::placeholder{color:var(--dim);}
 .sync-ok{background:#14532d;color:#86efac;}
 .sync-err{background:#7f1d1d;color:#fca5a5;}
 .sync-ing{background:#1e3a6e;color:#93c5fd;}
+input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2a;border-radius:10px;color:#fff;font-size:16px;padding:14px;width:100%;outline:none;-webkit-appearance:none;appearance:none;}
+.auth-tab{flex:1;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;background:transparent;color:#888;}
+.auth-tab.on{background:#2563eb;color:#fff;}
+.auth-field{margin-bottom:12px;}
+.auth-field label{display:block;color:#888;font-size:11px;margin-bottom:5px;letter-spacing:.5px;}
+.remember-row{display:flex;align-items:center;gap:10px;padding:14px 2px;cursor:pointer;}
+.remember-box{width:24px;height:24px;border-radius:7px;border:1.5px solid #444;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.remember-box.on{background:#2563eb;border-color:#2563eb;}
+.remember-box.on::after{content:'\2713';color:#fff;font-size:15px;font-weight:700;}
+.auth-err{background:#2a1515;border:0.5px solid #7f1d1d;color:#fca5a5;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:12px;display:none;}
+.admin-user-row{background:#1a1a1a;border-radius:12px;padding:12px 14px;margin-bottom:8px;border:0.5px solid #2a2a2a;display:flex;align-items:center;gap:10px;}
 </style>
 </head>
 <body>
 <div class="app">
 
+<!-- SPLASH (mentre Firebase controlla la sessione) -->
+<div class="screen active" id="s-splash">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+    <div style="font-size:42px;">&#128170;</div>
+    <div style="color:#fff;font-size:22px;font-weight:700;">GymGuru</div>
+    <div style="color:#888;font-size:13px;">Caricamento...</div>
+  </div>
+</div>
+
+<!-- LOGIN / REGISTRAZIONE -->
+<div class="screen" id="s-auth">
+  <div style="flex:1;overflow-y:auto;padding:70px 22px 40px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-size:40px;margin-bottom:6px;">&#128170;</div>
+      <div style="color:#fff;font-size:26px;font-weight:700;">GymGuru</div>
+      <div style="color:#888;font-size:13px;margin-top:4px;">I tuoi allenamenti, sempre con te</div>
+    </div>
+
+    <div style="display:flex;gap:6px;background:#1a1a1a;border-radius:12px;padding:5px;margin-bottom:22px;border:0.5px solid #2a2a2a;">
+      <button class="auth-tab on" id="tab-login" onclick="setAuthTab('login')">Accedi</button>
+      <button class="auth-tab" id="tab-signup" onclick="setAuthTab('signup')">Registrati</button>
+    </div>
+
+    <div class="auth-err" id="auth-error"></div>
+
+    <div class="auth-field" id="field-name" style="display:none;">
+      <label>NOME</label>
+      <input type="text" id="auth-name" placeholder="Come ti chiami" autocomplete="name"/>
+    </div>
+    <div class="auth-field">
+      <label>EMAIL</label>
+      <input type="email" id="auth-email" placeholder="tuamail@esempio.com" autocomplete="email" autocapitalize="none" spellcheck="false"/>
+    </div>
+    <div class="auth-field">
+      <label>PASSWORD</label>
+      <input type="password" id="auth-password" placeholder="Almeno 6 caratteri" autocomplete="current-password"/>
+    </div>
+    <div class="auth-field" id="field-password2" style="display:none;">
+      <label>CONFERMA PASSWORD</label>
+      <input type="password" id="auth-password2" placeholder="Ripeti la password" autocomplete="new-password"/>
+    </div>
+
+    <div class="remember-row" onclick="toggleRemember()">
+      <div class="remember-box on" id="remember-box"></div>
+      <div>
+        <div style="color:#fff;font-size:14px;font-weight:500;">Ricordati di me</div>
+        <div style="color:#888;font-size:11px;">Resta collegato su questo dispositivo</div>
+      </div>
+    </div>
+
+    <button class="btn btn-blue" id="auth-submit-btn" style="margin-top:8px;" onclick="submitAuth()">Accedi</button>
+
+    <div style="text-align:center;margin-top:18px;">
+      <span id="auth-forgot" onclick="resetPassword()" style="color:#2563eb;font-size:13px;cursor:pointer;">Password dimenticata?</span>
+    </div>
+  </div>
+</div>
+
 <!-- HOME -->
-<div class="screen active" id="s-home">
+<div class="screen" id="s-home">
   <div class="topbar">
     <div style="flex:1;">
       <div style="color:var(--muted);font-size:12px;" id="home-date"></div>
@@ -100,11 +172,31 @@ input::placeholder{color:var(--dim);}
   </div>
   <div class="bottom">
     <button class="btn btn-blue" onclick="openNewWorkout()">+ Nuovo allenamento</button>
-    <div style="display:flex;gap:8px;">
-      <button onclick="exportData()" style="flex:1;border:0.5px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);font-size:13px;padding:12px;cursor:pointer;">&#8659; Esporta</button>
-      <button onclick="document.getElementById('import-input').click()" style="flex:1;border:0.5px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);font-size:13px;padding:12px;cursor:pointer;">&#8657; Importa</button>
-      <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)"/>
+    <div id="admin-tools" style="display:none;flex-direction:column;gap:8px;">
+      <div style="display:flex;gap:8px;">
+        <button onclick="exportData()" style="flex:1;border:0.5px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);font-size:13px;padding:12px;cursor:pointer;">&#8659; Esporta</button>
+        <button onclick="document.getElementById('import-input').click()" style="flex:1;border:0.5px solid var(--border);border-radius:12px;background:transparent;color:var(--muted);font-size:13px;padding:12px;cursor:pointer;">&#8657; Importa</button>
+        <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importData(event)"/>
+      </div>
+      <button onclick="openAdminPanel()" style="width:100%;border:0.5px solid #7c3aed;border-radius:12px;background:#2a1a4a;color:#c4b5fd;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">&#128273; Pannello admin</button>
     </div>
+  </div>
+</div>
+
+<!-- PANNELLO ADMIN -->
+<div class="screen" id="s-admin">
+  <div class="topbar">
+    <button class="back-btn" onclick="goScreen('s-home')">&#8249;</button>
+    <div class="topbar-title">Pannello admin</div>
+  </div>
+  <div class="scroll">
+    <div style="color:var(--muted);font-size:12px;margin-bottom:14px;">Tutti gli account registrati. Puoi scaricare i dati di ciascuno o esportare tutto insieme.</div>
+    <button class="btn btn-blue" style="margin-bottom:16px;" onclick="exportAllUsers()">&#8659; Esporta TUTTI gli account</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="color:var(--muted);font-size:13px;">Utenti</span>
+      <button onclick="loadAdminUsers()" style="border:none;background:var(--card2);color:var(--muted);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">&#8635; Aggiorna</button>
+    </div>
+    <div id="admin-user-list"><div style="color:var(--dim);font-size:13px;">Caricamento...</div></div>
   </div>
 </div>
 
@@ -231,7 +323,7 @@ input::placeholder{color:var(--dim);}
 
 <!-- TIMER PAUSA -->
 <div class="screen" id="s-timer">
-  <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;">
+  <div class="fullcol">
     <div class="topbar">
       <button class="back-btn" onclick="timerGoBack()">&#8249;</button>
       <div style="color:var(--muted);font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="timer-label">Pausa</div>
@@ -259,7 +351,7 @@ input::placeholder{color:var(--dim);}
 
 <!-- TIMER CARDIO -->
 <div class="screen" id="s-cardio-timer">
-  <div style="display:flex;flex-direction:column;height:100vh;background:#0a0a0a;">
+  <div class="fullcol">
     <div class="topbar">
       <button class="back-btn" onclick="cardioTimerGoBack()">&#8249;</button>
       <div style="color:#fb923c;font-size:14px;flex:1;" id="cardio-timer-label">Cardio</div>
@@ -410,27 +502,158 @@ function mkEx(n,reps,sets,rest){var a=[];for(var i=0;i<sets;i++)a.push({kg:0,rep
 function mkExC(n,sd,rest){var sets=[];for(var i=0;i<sd.length;i++)sets.push({kg:sd[i][0],reps:sd[i][1],done:false,restSeconds:rest});return{name:n,type:'forza',restSeconds:rest,note:'',sets:sets};}
 function mkCardio(n,dur){return{name:n,type:'cardio',durationSeconds:dur,level:0,incline:0,calories:0,speed:0,note:'',done:false};}
 
-var TEMPLATES=[
-  {name:'Petto - Bicipiti - Gambe',exercises:[mkEx('Panca piana',4,3,90),mkEx('Chest press',10,2,90),mkEx('Panca inclinata',5,2,90),mkEx('Aperture',10,2,90),mkEx('Cavi busto a 90',10,2,90),mkEx('Bicipiti manubri',6,3,75),mkEx('A martello',12,3,75),mkEx('Leg curl prono',20,3,60),mkEx('Step up',10,3,60)]},
-  {name:'Schiena - Tricipiti - Gambe',exercises:[mkCardio('Tappeto',600),mkExC('Lat machine',[[45,8],[50,8],[55,8]],90),mkExC('Pulley a 90',[[45,8],[50,8],[55,8],[60,8]],90),mkExC('Lat stretta',[[45,8],[50,8],[55,6]],90),mkExC('Row Panatta',[[30,8],[35,8],[40,8]],90),mkEx('Sbarra',0,1,90),mkExC('Push down',[[23,10],[27,8],[32,6]],90),mkEx('French press bilanciere',0,1,90),mkEx('Corda',0,1,90),mkEx('Affondi',0,1,90),mkCardio('Tappeto',600)]},
-  {name:'Spalle - Gambe',exercises:[mkEx('Spalle alzate lat',6,3,60),mkEx('Alzate 90 ai cavi',6,3,60),mkEx('Shoulder press',6,3,60),mkEx('Scrollate M.Power',6,4,60),mkEx('Squat',8,4,90),mkEx('Leg ext',8,2,60),mkEx('Addome su panca',12,3,30),mkEx('Polpacci',20,4,60)]}
-];
+function defaultTemplates(){
+  return [
+    {name:'Petto - Bicipiti - Gambe',exercises:[mkEx('Panca piana',4,3,90),mkEx('Chest press',10,2,90),mkEx('Panca inclinata',5,2,90),mkEx('Aperture',10,2,90),mkEx('Cavi busto a 90',10,2,90),mkEx('Bicipiti manubri',6,3,75),mkEx('A martello',12,3,75),mkEx('Leg curl prono',20,3,60),mkEx('Step up',10,3,60)]},
+    {name:'Schiena - Tricipiti - Gambe',exercises:[mkCardio('Tappeto',600),mkExC('Lat machine',[[45,8],[50,8],[55,8]],90),mkExC('Pulley a 90',[[45,8],[50,8],[55,8],[60,8]],90),mkExC('Lat stretta',[[45,8],[50,8],[55,6]],90),mkExC('Row Panatta',[[30,8],[35,8],[40,8]],90),mkEx('Sbarra',0,1,90),mkExC('Push down',[[23,10],[27,8],[32,6]],90),mkEx('French press bilanciere',0,1,90),mkEx('Corda',0,1,90),mkEx('Affondi',0,1,90),mkCardio('Tappeto',600)]},
+    {name:'Spalle - Gambe',exercises:[mkEx('Spalle alzate lat',6,3,60),mkEx('Alzate 90 ai cavi',6,3,60),mkEx('Shoulder press',6,3,60),mkEx('Scrollate M.Power',6,4,60),mkEx('Squat',8,4,90),mkEx('Leg ext',8,2,60),mkEx('Addome su panca',12,3,30),mkEx('Polpacci',20,4,60)]}
+  ];
+}
+var TEMPLATES=defaultTemplates();
+function resetTemplates(){TEMPLATES=defaultTemplates();}
 
-/* AUTH */
-auth.onAuthStateChanged(function(user){
-  currentUser=user; renderAuthArea();
-  if(user){loadFromFirebase();}else{loadLocal();buildCalendar();renderTodayWorkouts();}
-});
-function renderAuthArea(){
-  var area=document.getElementById('auth-area');if(!area)return;
-  if(currentUser){
-    area.innerHTML='<div style="cursor:pointer;text-align:right;" onclick="signOutUser()"><div style="color:#fff;font-size:12px;font-weight:500;">'+escHtml(currentUser.displayName||'Utente')+'</div><div style="color:var(--muted);font-size:10px;">Tocca per uscire</div></div>';
+/* ===== AUTENTICAZIONE ===== */
+var ADMIN_EMAIL='gurpreetnar23@gmail.com';
+var isAdmin=false;
+var authMode='login';
+var rememberMe=true;
+var authBusy=false;
+
+function setAuthTab(mode){
+  authMode=mode;
+  document.getElementById('tab-login').className='auth-tab'+(mode==='login'?' on':'');
+  document.getElementById('tab-signup').className='auth-tab'+(mode==='signup'?' on':'');
+  document.getElementById('field-name').style.display=mode==='signup'?'block':'none';
+  document.getElementById('field-password2').style.display=mode==='signup'?'block':'none';
+  document.getElementById('auth-submit-btn').textContent=mode==='signup'?'Crea account':'Accedi';
+  document.getElementById('auth-forgot').style.display=mode==='login'?'inline':'none';
+  document.getElementById('auth-password').setAttribute('autocomplete',mode==='signup'?'new-password':'current-password');
+  hideAuthError();
+}
+function toggleRemember(){
+  rememberMe=!rememberMe;
+  document.getElementById('remember-box').className='remember-box'+(rememberMe?' on':'');
+  try{localStorage.setItem('gg_remember',rememberMe?'1':'0');}catch(e){}
+}
+function showAuthError(msg){var e=document.getElementById('auth-error');e.textContent=msg;e.style.display='block';}
+function hideAuthError(){document.getElementById('auth-error').style.display='none';}
+function setAuthBusy(b,label){
+  authBusy=b;
+  var btn=document.getElementById('auth-submit-btn');
+  btn.disabled=b;btn.style.opacity=b?'0.6':'1';
+  btn.textContent=b?(label||'Attendi...'):(authMode==='signup'?'Crea account':'Accedi');
+}
+
+function translateAuthError(code,msg){
+  var m={
+    'auth/invalid-email':'Email non valida.',
+    'auth/user-disabled':'Questo account e stato disattivato.',
+    'auth/user-not-found':'Nessun account con questa email. Usa Registrati.',
+    'auth/wrong-password':'Password errata.',
+    'auth/invalid-credential':'Email o password errate.',
+    'auth/invalid-login-credentials':'Email o password errate.',
+    'auth/email-already-in-use':'Esiste gia un account con questa email. Usa Accedi.',
+    'auth/weak-password':'Password troppo debole: almeno 6 caratteri.',
+    'auth/too-many-requests':'Troppi tentativi. Riprova tra qualche minuto.',
+    'auth/network-request-failed':'Nessuna connessione. Controlla la rete.',
+    'auth/operation-not-allowed':'Email/Password non e abilitato nella console Firebase.',
+    'auth/missing-password':'Inserisci la password.'
+  };
+  return m[code]||msg||'Errore imprevisto.';
+}
+
+function submitAuth(){
+  if(authBusy)return;
+  hideAuthError();
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  var pass=document.getElementById('auth-password').value;
+  if(!email){showAuthError('Inserisci la tua email.');return;}
+  if(!pass){showAuthError('Inserisci la password.');return;}
+
+  var persistence=rememberMe?firebase.auth.Auth.Persistence.LOCAL:firebase.auth.Auth.Persistence.SESSION;
+
+  if(authMode==='signup'){
+    var name=document.getElementById('auth-name').value.trim();
+    var pass2=document.getElementById('auth-password2').value;
+    if(!name){showAuthError('Inserisci il tuo nome.');return;}
+    if(pass.length<6){showAuthError('La password deve avere almeno 6 caratteri.');return;}
+    if(pass!==pass2){showAuthError('Le due password non coincidono.');return;}
+    setAuthBusy(true,'Creo account...');
+    auth.setPersistence(persistence).then(function(){
+      return auth.createUserWithEmailAndPassword(email,pass);
+    }).then(function(cred){
+      return cred.user.updateProfile({displayName:name}).then(function(){
+        return db.collection('users').doc(cred.user.uid).set({
+          profile:{name:name,email:email,createdAt:new Date().toISOString()},
+          workouts:[],templates:defaultTemplates()
+        },{merge:true});
+      }).then(function(){
+        /* il nome e pronto: aggiorno l'intestazione */
+        currentUser=auth.currentUser;renderAuthArea();
+      });
+    }).catch(function(e){
+      setAuthBusy(false);showAuthError(translateAuthError(e.code,e.message));
+    });
   }else{
-    area.innerHTML='<button onclick="signInGoogle()" style="border:none;background:var(--blue);color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">Accedi</button>';
+    setAuthBusy(true,'Accesso...');
+    auth.setPersistence(persistence).then(function(){
+      return auth.signInWithEmailAndPassword(email,pass);
+    }).catch(function(e){
+      setAuthBusy(false);showAuthError(translateAuthError(e.code,e.message));
+    });
   }
 }
-function signInGoogle(){var p=new firebase.auth.GoogleAuthProvider();auth.signInWithPopup(p).catch(function(e){alert('Errore: '+e.message);});}
-function signOutUser(){auth.signOut();}
+
+function resetPassword(){
+  var email=document.getElementById('auth-email').value.trim().toLowerCase();
+  if(!email){showAuthError('Scrivi prima la tua email, poi tocca di nuovo qui.');return;}
+  auth.sendPasswordResetEmail(email).then(function(){
+    hideAuthError();
+    alert('Ti abbiamo inviato una email per reimpostare la password. Controlla la posta (anche lo spam).');
+  }).catch(function(e){showAuthError(translateAuthError(e.code,e.message));});
+}
+
+function askSignOut(){
+  showConfirm('Esci dall\'account','Vuoi uscire? I tuoi dati restano salvati sul server e li ritrovi al prossimo accesso.',function(){
+    doSignOut();
+  });
+}
+function doSignOut(){
+  if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+  if(cardioInterval){clearInterval(cardioInterval);cardioInterval=null;}
+  timerActive=false;cardioActive=false;showMiniBar(false);showMiniCardioBar(false);
+  auth.signOut();
+}
+
+/* Stato autenticazione */
+auth.onAuthStateChanged(function(user){
+  currentUser=user;
+  if(user){
+    isAdmin=(user.email||'').toLowerCase()===ADMIN_EMAIL;
+    document.getElementById('admin-tools').style.display=isAdmin?'flex':'none';
+    renderAuthArea();
+    setAuthBusy(false);
+    document.getElementById('auth-password').value='';
+    document.getElementById('auth-password2').value='';
+    loadFromFirebase();
+    goScreen('s-home');
+  }else{
+    isAdmin=false;
+    workouts=[];
+    currentWorkoutIdx=null;currentExIdx=null;
+    resetTemplates();
+    document.getElementById('admin-tools').style.display='none';
+    setAuthBusy(false);
+    goScreen('s-auth');
+  }
+});
+
+function renderAuthArea(){
+  var area=document.getElementById('auth-area');if(!area||!currentUser)return;
+  var nome=currentUser.displayName||(currentUser.email||'Utente').split('@')[0];
+  area.innerHTML='<div style="cursor:pointer;text-align:right;" onclick="askSignOut()"><div style="color:#fff;font-size:12px;font-weight:600;">'+escHtml(nome)+(isAdmin?' <span style="color:#c4b5fd;font-size:10px;">ADMIN</span>':'')+'</div><div style="color:var(--muted);font-size:10px;">Tocca per uscire</div></div>';
+}
 
 /* SYNC STATUS */
 function setSyncStatus(state,msg){
@@ -441,33 +664,54 @@ function setSyncStatus(state,msg){
   else el.innerHTML='';
 }
 
-/* STORAGE */
-function saveLocal(){try{localStorage.setItem('gg_w',JSON.stringify(workouts));localStorage.setItem('gg_t',JSON.stringify(TEMPLATES));}catch(e){}}
+/* STORAGE - ogni utente ha le sue chiavi, niente dati mescolati sullo stesso telefono */
+function keyW(){return currentUser?('gg_w_'+currentUser.uid):'gg_w_anon';}
+function keyT(){return currentUser?('gg_t_'+currentUser.uid):'gg_t_anon';}
+
+function saveLocal(){
+  if(!currentUser)return;
+  try{localStorage.setItem(keyW(),JSON.stringify(workouts));localStorage.setItem(keyT(),JSON.stringify(TEMPLATES));}catch(e){}
+}
 function save(){
   saveLocal();
   if(currentUser){clearTimeout(saveTimeout);saveTimeout=setTimeout(function(){saveToFirebase();},1500);}
 }
 function saveToFirebase(){
   if(!currentUser)return;setSyncStatus('ing');
-  db.collection('users').doc(currentUser.uid).set({workouts:workouts,templates:TEMPLATES,updatedAt:new Date().toISOString()},{merge:true})
-  .then(function(){setSyncStatus('ok');}).catch(function(e){setSyncStatus('err');});
+  var prof={email:(currentUser.email||'').toLowerCase(),updatedAt:new Date().toISOString()};
+  /* scrivo il nome solo se lo conosco, cosi non sovrascrivo con vuoto quello gia salvato */
+  if(currentUser.displayName)prof.name=currentUser.displayName;
+  db.collection('users').doc(currentUser.uid).set({
+    profile:prof,workouts:workouts,templates:TEMPLATES,updatedAt:new Date().toISOString()
+  },{merge:true}).then(function(){setSyncStatus('ok');}).catch(function(e){setSyncStatus('err');});
 }
 function loadFromFirebase(){
+  if(!currentUser)return;
+  loadLocal();
+  buildCalendar();renderTodayWorkouts();
   setSyncStatus('ing');
   db.collection('users').doc(currentUser.uid).get().then(function(doc){
     if(doc.exists){
       var data=doc.data();
-      if(data.workouts&&Array.isArray(data.workouts))workouts=sanitize(data.workouts);
-      if(data.templates&&Array.isArray(data.templates))data.templates.forEach(function(t,i){if(TEMPLATES[i])TEMPLATES[i]=t;});
-      saveLocal();setSyncStatus('ok');
-    }else{loadLocal();setSyncStatus('ok');}
+      workouts=(data.workouts&&Array.isArray(data.workouts))?sanitize(data.workouts):[];
+      if(data.templates&&Array.isArray(data.templates)&&data.templates.length){
+        resetTemplates();
+        data.templates.forEach(function(t,i){if(TEMPLATES[i])TEMPLATES[i]=t;});
+      }
+      saveLocal();
+    }else{
+      saveToFirebase();
+    }
+    setSyncStatus('ok');
     buildCalendar();renderTodayWorkouts();
-  }).catch(function(e){setSyncStatus('err');loadLocal();buildCalendar();renderTodayWorkouts();});
+  }).catch(function(e){setSyncStatus('err');});
 }
 function loadLocal(){
+  if(!currentUser){workouts=[];resetTemplates();return;}
+  workouts=[];resetTemplates();
   try{
-    var w=localStorage.getItem('gg_w');if(w)workouts=sanitize(JSON.parse(w));
-    var t=localStorage.getItem('gg_t');if(t){var pt=JSON.parse(t);if(Array.isArray(pt))pt.forEach(function(x,i){if(TEMPLATES[i])TEMPLATES[i]=x;});}
+    var w=localStorage.getItem(keyW());if(w)workouts=sanitize(JSON.parse(w));
+    var t=localStorage.getItem(keyT());if(t){var pt=JSON.parse(t);if(Array.isArray(pt))pt.forEach(function(x,i){if(TEMPLATES[i])TEMPLATES[i]=x;});}
   }catch(e){workouts=[];}
 }
 function sanitize(arr){
@@ -483,11 +727,84 @@ function sanitize(arr){
   return arr;
 }
 
-/* ESPORTA/IMPORTA */
-function exportData(){
-  var blob=new Blob([JSON.stringify({workouts:workouts,templates:TEMPLATES,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+/* ESPORTA/IMPORTA (solo admin) */
+function downloadJSON(obj,filename){
+  var blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
   var url=URL.createObjectURL(blob);var a=document.createElement('a');
-  a.href=url;a.download='GymGuru_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();
+  document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
+function exportData(){
+  downloadJSON({workouts:workouts,templates:TEMPLATES,exportedAt:new Date().toISOString()},'GymGuru_'+new Date().toISOString().slice(0,10)+'.json');
+}
+
+/* ===== PANNELLO ADMIN ===== */
+var adminUsersCache=[];
+function openAdminPanel(){
+  if(!isAdmin)return;
+  goScreen('s-admin');
+  loadAdminUsers();
+}
+function loadAdminUsers(){
+  if(!isAdmin)return;
+  var list=document.getElementById('admin-user-list');
+  list.innerHTML='<div style="color:var(--dim);font-size:13px;">Caricamento utenti...</div>';
+  db.collection('users').get().then(function(snap){
+    adminUsersCache=[];
+    snap.forEach(function(doc){
+      var d=doc.data()||{};var p=d.profile||{};
+      adminUsersCache.push({
+        uid:doc.id,
+        name:p.name||'(senza nome)',
+        email:p.email||'(email sconosciuta)',
+        createdAt:p.createdAt||'',
+        nWorkouts:(d.workouts&&d.workouts.length)||0,
+        data:d
+      });
+    });
+    adminUsersCache.sort(function(a,b){return a.name.localeCompare(b.name);});
+    renderAdminUsers();
+  }).catch(function(e){
+    list.innerHTML='<div style="color:#fca5a5;font-size:13px;">Errore: '+escHtml(e.message)+'<br><br>Controlla di aver pubblicato le regole Firestore con la tua email admin.</div>';
+  });
+}
+function renderAdminUsers(){
+  var list=document.getElementById('admin-user-list');
+  if(adminUsersCache.length===0){list.innerHTML='<div style="color:var(--dim);font-size:13px;">Nessun utente registrato.</div>';return;}
+  var html='';
+  for(var i=0;i<adminUsersCache.length;i++){
+    var u=adminUsersCache[i];
+    var me=currentUser&&u.uid===currentUser.uid;
+    html+='<div class="admin-user-row">';
+    html+='<div style="flex:1;min-width:0;">';
+    html+='<div style="color:#fff;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(u.name)+(me?' <span style="color:#c4b5fd;font-size:10px;">TU</span>':'')+'</div>';
+    html+='<div style="color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(u.email)+'</div>';
+    html+='<div style="color:var(--dim);font-size:11px;margin-top:2px;">'+u.nWorkouts+' allenamenti salvati</div>';
+    html+='</div>';
+    html+='<button onclick="exportSingleUser('+i+')" style="border:none;background:#1e3a6e;color:#93c5fd;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;">&#8659; JSON</button>';
+    html+='</div>';
+  }
+  list.innerHTML=html;
+}
+function exportSingleUser(i){
+  var u=adminUsersCache[i];if(!u)return;
+  var safe=u.name.replace(/[^a-zA-Z0-9]+/g,'_');
+  downloadJSON({
+    exportedBy:ADMIN_EMAIL,exportedAt:new Date().toISOString(),
+    user:{uid:u.uid,name:u.name,email:u.email,createdAt:u.createdAt},
+    workouts:u.data.workouts||[],templates:u.data.templates||[]
+  },'GymGuru_'+safe+'_'+new Date().toISOString().slice(0,10)+'.json');
+}
+function exportAllUsers(){
+  if(!isAdmin)return;
+  if(adminUsersCache.length===0){alert('Prima carica la lista utenti.');return;}
+  var all=[];
+  for(var i=0;i<adminUsersCache.length;i++){
+    var u=adminUsersCache[i];
+    all.push({uid:u.uid,name:u.name,email:u.email,createdAt:u.createdAt,workouts:u.data.workouts||[],templates:u.data.templates||[]});
+  }
+  downloadJSON({exportedBy:ADMIN_EMAIL,exportedAt:new Date().toISOString(),totalUsers:all.length,users:all},
+    'GymGuru_TUTTI_'+new Date().toISOString().slice(0,10)+'.json');
 }
 function importData(e){
   var file=e.target.files[0];if(!file)return;
@@ -498,14 +815,87 @@ function importData(e){
   };reader.readAsText(file);
 }
 
-/* AUDIO */
-function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
-function playBeep(f,d){try{var c=getCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.4,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}}
-function playDoneSound(){playBeep(880,0.15);setTimeout(function(){playBeep(1100,0.15);},180);setTimeout(function(){playBeep(1320,0.3);},360);}
+/* AUDIO
+   Android Chrome e iOS Safari tengono l'audio sospeso finche l'utente non
+   tocca lo schermo. Sblocco il contesto al primo tocco, cosi quando scade il
+   timer il suono parte davvero anche se nessuno sta toccando il telefono. */
+function getCtx(){
+  if(!audioCtx){
+    try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}
+  }
+  if(audioCtx.state==='suspended'){try{audioCtx.resume();}catch(e){}}
+  return audioCtx;
+}
+function unlockAudio(){
+  var c=getCtx();if(!c)return;
+  try{var o=c.createOscillator(),g=c.createGain();g.gain.value=0;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+0.01);}catch(e){}
+}
+document.addEventListener('touchstart',unlockAudio,{once:true});
+document.addEventListener('click',unlockAudio,{once:true});
+/* vibrazione: funziona su Android, iOS la ignora senza dare errore */
+function buzz(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}}
+function playBeep(f,d){try{var c=getCtx();if(!c)return;var o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.4,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}}
+function playDoneSound(){
+  playBeep(880,0.15);
+  setTimeout(function(){playBeep(1100,0.15);},180);
+  setTimeout(function(){playBeep(1320,0.3);},360);
+  buzz([200,100,200,100,350]);
+}
 function stopAlarmSound(){alarmSilenced=true;if(alarmLfoInt){clearInterval(alarmLfoInt);alarmLfoInt=null;}if(window._alTO)clearTimeout(window._alTO);try{if(alarmGainNode&&audioCtx)alarmGainNode.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}catch(e){}setTimeout(function(){try{if(alarmOsc){alarmOsc.stop();alarmOsc=null;}}catch(e){}alarmGainNode=null;},150);}
 
 /* NAVIGAZIONE */
-function goScreen(id){var s=document.querySelectorAll('.screen');for(var i=0;i<s.length;i++)s[i].classList.remove('active');document.getElementById(id).classList.add('active');}
+var trapArmed=false;
+var ROOT_SCREENS={'s-home':1,'s-auth':1,'s-splash':1};
+
+function currentScreenId(){
+  var s=document.querySelectorAll('.screen');
+  for(var i=0;i<s.length;i++)if(s[i].classList.contains('active'))return s[i].id;
+  return 's-home';
+}
+function armBackTrap(){
+  if(trapArmed)return;
+  try{history.pushState({gg:1},'');trapArmed=true;}catch(e){}
+}
+function goScreen(id){
+  var s=document.querySelectorAll('.screen');
+  for(var i=0;i<s.length;i++)s[i].classList.remove('active');
+  var el=document.getElementById(id);
+  if(el)el.classList.add('active');
+  if(!ROOT_SCREENS[id])armBackTrap();
+}
+
+/* Tasto Indietro di Android (hardware o gesto): deve tornare alla schermata
+   precedente dentro l'app, non chiudere l'app in mezzo a un allenamento. */
+function anyModalOpen(){
+  var ids=['modal-confirm','modal-rename','modal-add-ex','modal-new-workout'];
+  for(var i=0;i<ids.length;i++){
+    var m=document.getElementById(ids[i]);
+    if(m&&m.style.display==='block')return ids[i];
+  }
+  return null;
+}
+window.addEventListener('popstate',function(){
+  trapArmed=false;
+  /* 1. se c'e un pop-up aperto, Indietro lo chiude */
+  var open=anyModalOpen();
+  if(open){
+    if(open==='modal-confirm')closeConfirm();
+    else if(open==='modal-rename')closeRename();
+    else if(open==='modal-add-ex')closeModal();
+    else closeNewWorkoutModal();
+    armBackTrap();
+    return;
+  }
+  /* 2. altrimenti si comporta come la freccia in alto a sinistra */
+  var cur=currentScreenId();
+  if(cur==='s-workout'||cur==='s-admin'){armBackTrap();goScreen('s-home');return;}
+  if(cur==='s-active'){armBackTrap();goScreen('s-workout');return;}
+  if(cur==='s-ex-detail'||cur==='s-cardio-detail'){armBackTrap();backToActive();return;}
+  if(cur==='s-timer'){armBackTrap();timerGoBack();return;}
+  if(cur==='s-cardio-timer'){armBackTrap();cardioTimerGoBack();return;}
+  if(cur==='s-edit-mode'){armBackTrap();cancelEditMode();return;}
+  /* 3. sulla home o sul login lascio uscire normalmente */
+});
 function showMiniBar(v){document.getElementById('mini-timer-bar').style.display=v?'flex':'none';}
 function showMiniCardioBar(v){document.getElementById('mini-cardio-bar').style.display=v?'flex':'none';}
 function backToActive(){renderActiveScreen();showMiniBar(timerActive);showMiniCardioBar(cardioActive);goScreen('s-active');}
@@ -513,10 +903,10 @@ function timerGoBack(){showMiniBar(true);document.getElementById('mini-timer-lab
 function cardioTimerGoBack(){showMiniCardioBar(true);document.getElementById('mini-cardio-label').textContent=document.getElementById('cardio-timer-label').textContent;goScreen('s-cardio-detail');}
 
 /* MODALI */
-function showConfirm(ti,bo,ok){document.getElementById('confirm-title').textContent=ti;document.getElementById('confirm-body').textContent=bo;document.getElementById('confirm-ok-btn').onclick=function(){closeConfirm();ok();};document.getElementById('modal-confirm').style.display='block';}
+function showConfirm(ti,bo,ok){document.getElementById('confirm-title').textContent=ti;document.getElementById('confirm-body').textContent=bo;document.getElementById('confirm-ok-btn').onclick=function(){closeConfirm();ok();};document.getElementById('modal-confirm').style.display='block';armBackTrap();}
 function closeConfirm(){document.getElementById('modal-confirm').style.display='none';}
 var _rnCb=null;
-function openRenameModal(ti,cur,cb){document.getElementById('rename-title').textContent=ti;document.getElementById('rename-input').value=cur;_rnCb=cb;document.getElementById('modal-rename').style.display='block';setTimeout(function(){var i=document.getElementById('rename-input');i.focus();i.select();},100);}
+function openRenameModal(ti,cur,cb){document.getElementById('rename-title').textContent=ti;document.getElementById('rename-input').value=cur;_rnCb=cb;document.getElementById('modal-rename').style.display='block';armBackTrap();setTimeout(function(){var i=document.getElementById('rename-input');i.focus();i.select();},100);}
 function closeRename(){document.getElementById('modal-rename').style.display='none';_rnCb=null;}
 function confirmRename(){var v=document.getElementById('rename-input').value.trim();if(!v)return;if(_rnCb)_rnCb(v);closeRename();}
 
@@ -589,7 +979,7 @@ function openNewWorkout(preD,preM,preY){
   document.getElementById('workout-date-picker').value=y+'-'+pad(m+1)+'-'+pad(d);
   var h='';for(var i=0;i<TEMPLATES.length;i++)h+='<div id="tpl-'+i+'" onclick="selectTemplate('+i+')" style="background:var(--card2);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;color:var(--muted);font-size:14px;">'+escHtml(TEMPLATES[i].name)+'</div>';
   document.getElementById('template-list').innerHTML=h;
-  document.getElementById('modal-new-workout').style.display='block';
+  document.getElementById('modal-new-workout').style.display='block';armBackTrap();
 }
 function closeNewWorkoutModal(){document.getElementById('modal-new-workout').style.display='none';}
 function selectTemplate(idx){
@@ -637,7 +1027,7 @@ function renderWorkoutScreen(){
 
 /* AGGIUNGI ESERCIZIO */
 function setExType(type){selectedExType=type;var fb=document.getElementById('type-btn-forza'),cb=document.getElementById('type-btn-cardio');if(type==='forza'){fb.className='btn btn-blue';cb.className='btn btn-dark';cb.style.border='0.5px solid var(--border)';}else{cb.className='btn btn-orange';fb.className='btn btn-dark';fb.style.border='0.5px solid var(--border)';}document.getElementById('ex-search-input').value='';filterSugg();}
-function showAddExModal(){selectedExType='forza';document.getElementById('type-btn-forza').className='btn btn-blue';document.getElementById('type-btn-cardio').className='btn btn-dark';document.getElementById('type-btn-cardio').style.border='0.5px solid var(--border)';document.getElementById('ex-search-input').value='';filterSugg();document.getElementById('modal-add-ex').style.display='block';setTimeout(function(){document.getElementById('ex-search-input').focus();},100);}
+function showAddExModal(){selectedExType='forza';document.getElementById('type-btn-forza').className='btn btn-blue';document.getElementById('type-btn-cardio').className='btn btn-dark';document.getElementById('type-btn-cardio').style.border='0.5px solid var(--border)';document.getElementById('ex-search-input').value='';filterSugg();document.getElementById('modal-add-ex').style.display='block';armBackTrap();setTimeout(function(){document.getElementById('ex-search-input').focus();},100);}
 function closeModal(){document.getElementById('modal-add-ex').style.display='none';}
 function filterSugg(){var q=document.getElementById('ex-search-input').value.toLowerCase();var L=selectedExType==='cardio'?SUGGS_CARDIO:SUGGS_FORZA;var h='';for(var i=0;i<L.length;i++)if(L[i].toLowerCase().indexOf(q)>=0)h+='<div class="ex-sugg" onclick="selectSugg(\''+L[i].replace(/'/g,"\\'")+'\')">'+L[i]+'</div>';document.getElementById('sugg-list').innerHTML=h;}
 function selectSugg(n){document.getElementById('ex-search-input').value=n;}
@@ -877,7 +1267,20 @@ function downloadPDF(){
 }
 
 /* INIT */
-function initApp(){initCalendar();filterSugg();}
+function initApp(){
+  initCalendar();filterSugg();
+  try{var r=localStorage.getItem('gg_remember');if(r==='0')rememberMe=false;}catch(e){}
+  document.getElementById('remember-box').className='remember-box'+(rememberMe?' on':'');
+  setAuthTab('login');
+  /* Invio da tastiera per inviare il form */
+  var ids=['auth-email','auth-password','auth-password2','auth-name'];
+  for(var i=0;i<ids.length;i++){
+    (function(id){
+      var el=document.getElementById(id);
+      if(el)el.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();submitAuth();}});
+    })(ids[i]);
+  }
+}
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initApp);}else{initApp();}
 </script>
 </body>
