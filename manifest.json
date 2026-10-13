@@ -1,6 +1,6 @@
 {
-  "name": "GymGuru",
-  "short_name": "GymGuru",
+  "name": "GymNar",
+  "short_name": "GymNar",
   "description": "Il tuo compagno di allenamento in palestra",
   "start_url": "./index.html",
   "display": "standalone",
