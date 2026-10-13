@@ -82,6 +82,8 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
 .remember-box.on::after{content:'\2713';color:#fff;font-size:15px;font-weight:700;}
 .auth-err{background:#2a1515;border:0.5px solid #7f1d1d;color:#fca5a5;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:12px;display:none;}
 .admin-user-row{background:#1a1a1a;border-radius:12px;padding:12px 14px;margin-bottom:8px;border:0.5px solid #2a2a2a;display:flex;align-items:center;gap:10px;}
+/* inline-block (non block) cosi si centra dentro i contenitori text-align:center */
+.logo-img{border-radius:22%;display:inline-block;vertical-align:middle;object-fit:cover;}
 </style>
 </head>
 <body>
@@ -89,9 +91,8 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
 
 <!-- SPLASH (mentre Firebase controlla la sessione) -->
 <div class="screen active" id="s-splash">
-  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
-    <div style="font-size:42px;">&#128170;</div>
-    <div style="color:#fff;font-size:22px;font-weight:700;">GymNar</div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+    <img src="logo.png" alt="GymNar" class="logo-img" style="width:124px;height:124px;"/>
     <div style="color:#888;font-size:13px;">Caricamento...</div>
   </div>
 </div>
@@ -100,9 +101,8 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
 <div class="screen" id="s-auth">
   <div style="flex:1;overflow-y:auto;padding:70px 22px 40px;">
     <div style="text-align:center;margin-bottom:28px;">
-      <div style="font-size:40px;margin-bottom:6px;">&#128170;</div>
-      <div style="color:#fff;font-size:26px;font-weight:700;">GymNar</div>
-      <div style="color:#888;font-size:13px;margin-top:4px;">I tuoi allenamenti, sempre con te</div>
+      <img src="logo.png" alt="GymNar" class="logo-img" style="width:104px;height:104px;margin-bottom:10px;"/>
+      <div style="color:#888;font-size:13px;">I tuoi allenamenti, sempre con te</div>
     </div>
 
     <div style="display:flex;gap:6px;background:#1a1a1a;border-radius:12px;padding:5px;margin-bottom:22px;border:0.5px solid #2a2a2a;">
@@ -150,7 +150,7 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
   <div class="topbar">
     <div style="flex:1;">
       <div style="color:var(--muted);font-size:12px;" id="home-date"></div>
-      <div style="color:#fff;font-size:20px;font-weight:700;">GymNar &#128170;</div>
+      <div style="display:flex;align-items:center;gap:8px;"><img src="logo.png" alt="" class="logo-img" style="width:26px;height:26px;border-radius:7px;"/><span style="color:#fff;font-size:20px;font-weight:700;">GymNar</span></div>
     </div>
     <div id="auth-area"></div>
   </div>
