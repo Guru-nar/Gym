@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() == 'gurpreetnar23@gmail.com';
+    }
+
+    // L'admin puo cambiare SOLO l'elenco delle schede di un utente.
+    // Allenamenti svolti, profilo e tutto il resto restano intoccabili.
+    function soloSchede() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['templates']);
+    }
+
+    match /users/{userId} {
+      // Ognuno legge il proprio documento. L'admin legge quello di chiunque.
+      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
+
+      // Solo l'admin puo elencare tutti gli utenti (serve al Pannello admin).
+      allow list: if isAdmin();
+
+      // Ognuno crea e scrive i propri dati.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if (request.auth != null && request.auth.uid == userId)
+                    || (isAdmin() && soloSchede());
+
+      // Nessuno cancella account dall'app.
+      allow delete: if false;
+    }
+  }
+}
