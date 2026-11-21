@@ -227,6 +227,24 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
   </div>
 </div>
 
+<!-- ADMIN: schede di un singolo utente -->
+<div class="screen" id="s-admin-user">
+  <div class="topbar">
+    <button class="back-btn" onclick="goScreen('s-admin')">&#8249;</button>
+    <div style="flex:1;min-width:0;">
+      <div style="color:#fff;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="au-name">Utente</div>
+      <div style="color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="au-email"></div>
+    </div>
+    <span id="au-status"></span>
+  </div>
+  <div class="scroll">
+    <div style="color:var(--muted);font-size:13px;margin-bottom:10px;">Schede di questo utente</div>
+    <div id="au-their-list"></div>
+    <div style="color:var(--muted);font-size:13px;margin:22px 0 10px;">Le tue schede &#183; tocca + per assegnargliela</div>
+    <div id="au-mine-list"></div>
+  </div>
+</div>
+
 <!-- MENU MODIFICA: raccoglie riordina, rinomina, PDF ed elimina -->
 <div id="modal-workout-menu" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
   <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeWorkoutMenu()"></div>
@@ -498,8 +516,8 @@ var selectedExType='forza',selectedTemplateIdx=null;
    il calendario prima che initApp parta, e si vedeva "undefined undefined" */
 var _oggi=new Date();
 var calYear=_oggi.getFullYear(),calMonth=_oggi.getMonth();
-var timerInterval=null,timerRemaining=0,timerTotal=0,timerActive=false,timerEndTs=null;
-var cardioInterval=null,cardioRemaining=0,cardioTotal=0,cardioActive=false,cardioEndTs=null;
+var timerInterval=null,timerRemaining=0,timerTotal=0,timerActive=false,timerEndTs=null,timerExIdx=null;
+var cardioInterval=null,cardioRemaining=0,cardioTotal=0,cardioActive=false,cardioEndTs=null,cardioExIdx=null;
 var clockInterval=null,clockSec=0;
 var audioCtx=null,alarmOsc=null,alarmGainNode=null,alarmLfoInt=null,alarmSilenced=false;
 var _goNextFn=null,touchDragIdx=null,editWorkingCopy=[],dragSrcIdx=null,saveTimeout=null;
@@ -626,7 +644,7 @@ function resetPassword(){
 function askSignOut(){
   showConfirm('Esci dall\'account','Vuoi uscire? I tuoi dati restano salvati sul server e li ritrovi al prossimo accesso.',function(){
     doSignOut();
-  });
+  },'Esci');
 }
 function doSignOut(){
   if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
@@ -813,11 +831,110 @@ function renderAdminUsers(){
     html+='<div style="color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(u.email)+'</div>';
     html+='<div style="color:var(--dim);font-size:11px;margin-top:2px;">'+u.nWorkouts+' allenamenti salvati</div>';
     html+='</div>';
-    html+='<button onclick="exportSingleUser('+i+')" style="border:none;background:#1e3a6e;color:#93c5fd;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;">&#8659; JSON</button>';
+    html+='<button onclick="exportSingleUser('+i+')" style="border:none;background:#1e3a6e;color:#93c5fd;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;">&#8659;</button>';
+    html+='<button onclick="openAdminUser('+i+')" style="border:none;background:#2a1a4a;color:#c4b5fd;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;">Schede &#8250;</button>';
     html+='</div>';
   }
   list.innerHTML=html;
 }
+/* ===== ADMIN: assegnare le proprie schede a un utente =====
+   L'admin apre un utente, vede le schede che ha e puo passargli le sue.
+   Scrive solo il campo "templates" di quell'utente: allenamenti svolti,
+   profilo e password non vengono toccati. */
+var auIdx=null;        /* indice dell'utente aperto dentro adminUsersCache */
+var auTemplates=[];    /* copia di lavoro delle sue schede */
+
+function setAuStatus(stato){
+  var el=document.getElementById('au-status');if(!el)return;
+  if(stato==='ing')el.innerHTML='<span class="sync-badge sync-ing">&#8635;</span>';
+  else if(stato==='ok')el.innerHTML='<span class="sync-badge sync-ok">&#10003;</span>';
+  else if(stato==='err')el.innerHTML='<span class="sync-badge sync-err">&#9888;</span>';
+  else el.innerHTML='';
+}
+
+function openAdminUser(i){
+  if(!isAdmin)return;
+  var u=adminUsersCache[i];if(!u)return;
+  auIdx=i;
+  auTemplates=sanitizeTemplates((u.data&&u.data.templates)||[]);
+  document.getElementById('au-name').textContent=u.name;
+  document.getElementById('au-email').textContent=u.email;
+  setAuStatus('');
+  renderAdminUserScreen();
+  goScreen('s-admin-user');
+}
+
+function renderAdminUserScreen(){
+  /* le sue schede */
+  var box=document.getElementById('au-their-list');
+  if(auTemplates.length===0){
+    box.innerHTML='<div style="color:var(--dim);font-size:13px;">Nessuna scheda. Assegnagliene una da sotto.</div>';
+  }else{
+    var h='';
+    for(var i=0;i<auTemplates.length;i++){
+      var t=auTemplates[i];var n=(t.exercises||[]).length;
+      h+='<div style="position:relative;margin-bottom:8px;">';
+      h+='<div style="background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 52px 12px 14px;">';
+      h+='<div style="color:#fff;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(t.name)+'</div>';
+      h+='<div style="color:var(--dim);font-size:11px;margin-top:2px;">'+n+(n===1?' esercizio':' esercizi')+'</div></div>';
+      h+='<button onclick="adminRemoveScheda('+i+')" style="position:absolute;right:0;top:0;bottom:0;width:46px;border:none;background:transparent;color:#f87171;font-size:17px;cursor:pointer;">&#128465;</button>';
+      h+='</div>';
+    }
+    box.innerHTML=h;
+  }
+  /* le mie, con il + */
+  var box2=document.getElementById('au-mine-list');
+  if(TEMPLATES.length===0){
+    box2.innerHTML='<div style="color:var(--dim);font-size:13px;">Non hai schede da assegnare.</div>';
+    return;
+  }
+  var h2='';
+  for(var j=0;j<TEMPLATES.length;j++){
+    var m=TEMPLATES[j];var gia=false;
+    for(var k=0;k<auTemplates.length;k++)if(auTemplates[k].name===m.name){gia=true;break;}
+    var nn=(m.exercises||[]).length;
+    h2+='<div style="position:relative;margin-bottom:8px;opacity:'+(gia?'0.45':'1')+';">';
+    h2+='<div style="background:var(--card2);border:0.5px solid var(--border);border-radius:12px;padding:12px 52px 12px 14px;">';
+    h2+='<div style="color:#fff;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(m.name)+'</div>';
+    h2+='<div style="color:var(--dim);font-size:11px;margin-top:2px;">'+nn+(nn===1?' esercizio':' esercizi')+(gia?' &#183; gia assegnata':'')+'</div></div>';
+    if(!gia)h2+='<button onclick="adminAssignScheda('+j+')" style="position:absolute;right:0;top:0;bottom:0;width:46px;border:none;background:transparent;color:#4ade80;font-size:24px;cursor:pointer;">+</button>';
+    h2+='</div>';
+  }
+  box2.innerHTML=h2;
+}
+
+function adminAssignScheda(j){
+  var m=TEMPLATES[j];if(!m)return;
+  for(var k=0;k<auTemplates.length;k++)if(auTemplates[k].name===m.name)return;
+  auTemplates.push({name:m.name,exercises:stripDone(m.exercises)});
+  renderAdminUserScreen();
+  saveAdminUserTemplates();
+}
+
+function adminRemoveScheda(i){
+  var t=auTemplates[i];if(!t)return;
+  showConfirm('Togli scheda','Vuoi togliere "'+t.name+'" a questo utente? I suoi allenamenti gia svolti restano.',function(){
+    auTemplates.splice(i,1);
+    renderAdminUserScreen();
+    saveAdminUserTemplates();
+  },'Togli');
+}
+
+function saveAdminUserTemplates(){
+  if(!isAdmin||auIdx===null)return;
+  var u=adminUsersCache[auIdx];if(!u)return;
+  setAuStatus('ing');
+  db.collection('users').doc(u.uid).set({templates:auTemplates},{merge:true}).then(function(){
+    if(u.data)u.data.templates=deepClone(auTemplates);   /* tengo allineata la copia locale */
+    setAuStatus('ok');
+    /* se l'admin sta modificando se stesso, aggiorno anche le sue schede vive */
+    if(currentUser&&u.uid===currentUser.uid){TEMPLATES=sanitizeTemplates(auTemplates);saveLocal();}
+  }).catch(function(e){
+    setAuStatus('err');
+    showConfirm('Non salvato','Firestore ha rifiutato la scrittura: '+e.message+'  Controlla di aver pubblicato le regole aggiornate.',function(){},'Ho capito',true);
+  });
+}
+
 function exportSingleUser(i){
   var u=adminUsersCache[i];if(!u)return;
   var safe=u.name.replace(/[^a-zA-Z0-9]+/g,'_');
@@ -925,6 +1042,7 @@ window.addEventListener('popstate',function(){
   /* 2. altrimenti si comporta come la freccia in alto a sinistra */
   var cur=currentScreenId();
   if(cur==='s-workout'||cur==='s-admin'){armBackTrap();goScreen('s-home');return;}
+  if(cur==='s-admin-user'){armBackTrap();goScreen('s-admin');return;}
   /* un solo indietro: dal dettaglio esercizio si torna alla scheda unica */
   if(cur==='s-ex-detail'||cur==='s-cardio-detail'){armBackTrap();backToWorkout();return;}
   if(cur==='s-timer'){armBackTrap();timerGoBack();return;}
@@ -955,7 +1073,16 @@ function timerGoBack(){showMiniBar(true);document.getElementById('mini-timer-lab
 function cardioTimerGoBack(){showMiniCardioBar(true);document.getElementById('mini-cardio-label').textContent=document.getElementById('cardio-timer-label').textContent;goScreen('s-cardio-detail');}
 
 /* MODALI */
-function showConfirm(ti,bo,ok){document.getElementById('confirm-title').textContent=ti;document.getElementById('confirm-body').textContent=bo;document.getElementById('confirm-ok-btn').onclick=function(){closeConfirm();ok();};document.getElementById('modal-confirm').style.display='block';armBackTrap();}
+/* etichetta: quarto argomento. Senza, resta "Elimina" come prima. */
+function showConfirm(ti,bo,ok,etichetta,blu){
+  document.getElementById('confirm-title').textContent=ti;
+  document.getElementById('confirm-body').textContent=bo;
+  var b=document.getElementById('confirm-ok-btn');
+  b.textContent=etichetta||'Elimina';
+  b.className='btn '+(blu?'btn-blue':'btn-red');
+  b.onclick=function(){closeConfirm();ok();};
+  document.getElementById('modal-confirm').style.display='block';armBackTrap();
+}
 function closeConfirm(){document.getElementById('modal-confirm').style.display='none';}
 var _rnCb=null;
 function openRenameModal(ti,cur,cb){document.getElementById('rename-title').textContent=ti;document.getElementById('rename-input').value=cur;_rnCb=cb;document.getElementById('modal-rename').style.display='block';armBackTrap();setTimeout(function(){var i=document.getElementById('rename-input');i.focus();i.select();},100);}
@@ -1264,7 +1391,7 @@ function toggleSet(i){var s=workouts[currentWorkoutIdx].exercises[currentExIdx].
 function addSetToEx(){var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];var l=ex.sets[ex.sets.length-1];ex.sets.push({kg:l?l.kg:0,reps:l?l.reps:8,done:false,restSeconds:ex.restSeconds});save();renderExDetail();}
 function applyGlobalTimer(){var val=parseInt(document.getElementById('global-timer-input').value)||90;var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];ex.restSeconds=val;for(var i=0;i<ex.sets.length;i++)ex.sets[i].restSeconds=val;save();renderExDetail();}
 function saveNote(){workouts[currentWorkoutIdx].exercises[currentExIdx].note=document.getElementById('ex-note-input').value;save();}
-function askDeleteSet(idx){var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];if(ex.sets.length<=1){showConfirm('Ultimo set','Non puoi eliminare l\'unico set.',function(){});return;}showConfirm('Elimina set '+(idx+1),'Vuoi eliminare questo set?',function(){ex.sets.splice(idx,1);if(currentSetIdx>=ex.sets.length)currentSetIdx=ex.sets.length-1;save();renderExDetail();});}
+function askDeleteSet(idx){var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];if(ex.sets.length<=1){showConfirm('Ultimo set','Non puoi eliminare l\'unico set.',function(){},'Ho capito',true);return;}showConfirm('Elimina set '+(idx+1),'Vuoi eliminare questo set?',function(){ex.sets.splice(idx,1);if(currentSetIdx>=ex.sets.length)currentSetIdx=ex.sets.length-1;save();renderExDetail();});}
 
 /* DETTAGLIO CARDIO */
 /* Il tapis roulant non ha "livelli": si imposta velocita e inclinazione.
@@ -1285,6 +1412,7 @@ function saveCardioData(){var ex=workouts[currentWorkoutIdx].exercises[currentEx
 function startCardioTimer(){
   var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];
   cardioRemaining=ex.durationSeconds||600;cardioTotal=cardioRemaining;cardioActive=true;cardioEndTs=Date.now()+cardioRemaining*1000;
+  cardioExIdx=currentExIdx;
   if(cardioInterval)clearInterval(cardioInterval);
   document.getElementById('cardio-timer-label').textContent='Cardio: '+ex.name;
   document.getElementById('mini-cardio-label').textContent=ex.name;
@@ -1293,7 +1421,7 @@ function startCardioTimer(){
     cardioRemaining=Math.max(0,Math.round((cardioEndTs-Date.now())/1000));
     updateCardioUI();
     if(cardioRemaining<=0){
-      clearInterval(cardioInterval);cardioActive=false;showMiniCardioBar(false);
+      clearInterval(cardioInterval);cardioActive=false;cardioExIdx=null;showMiniCardioBar(false);
       workouts[currentWorkoutIdx].exercises[currentExIdx].done=true;save();
       playDoneSound();
       setTimeout(function(){goNextExOrActive();},600);
@@ -1308,7 +1436,7 @@ function updateCardioUI(){
   var ring=document.getElementById('cardio-ring');if(ring)ring.setAttribute('stroke-dashoffset',Math.round(circ*(1-pct)));
 }
 function adjustCardioTimer(d){cardioRemaining=Math.max(0,cardioRemaining+d);cardioEndTs=Date.now()+cardioRemaining*1000;cardioTotal=Math.max(cardioTotal,cardioRemaining);updateCardioUI();}
-function stopCardioTimer(){if(cardioInterval)clearInterval(cardioInterval);cardioActive=false;showMiniCardioBar(false);workouts[currentWorkoutIdx].exercises[currentExIdx].done=true;save();renderCardioDetail();goScreen('s-cardio-detail');}
+function stopCardioTimer(){if(cardioInterval)clearInterval(cardioInterval);cardioActive=false;cardioExIdx=null;showMiniCardioBar(false);workouts[currentWorkoutIdx].exercises[currentExIdx].done=true;save();renderCardioDetail();goScreen('s-cardio-detail');}
 
 /* ===== AVVIO / RIPRESA =====
    Un solo pulsante. La prima volta segna l'allenamento come avviato; dalle
@@ -1324,6 +1452,11 @@ function startOrContinueWorkout(){
     save();
   }
   startClock();
+
+  /* Se un timer sta scorrendo l'esercizio e gia avviato: si torna li dentro,
+     non alla schermata dei valori da impostare. */
+  if(cardioActive){if(cardioExIdx!==null)currentExIdx=cardioExIdx;goScreen('s-cardio-timer');return;}
+  if(timerActive){if(timerExIdx!==null)currentExIdx=timerExIdx;goScreen('s-timer');return;}
 
   var idx=firstUndoneIdx(w);
   if(idx===-1){renderWorkoutScreen();return;}   /* gia tutto fatto */
@@ -1345,6 +1478,9 @@ function updateClockLabel(){
 /* apre l'esercizio i-esimo, posizionandosi sul primo set non fatto */
 function openExerciseAt(i){
   var w=workouts[currentWorkoutIdx];var ex=w.exercises[i];if(!ex)return;
+  /* stesso ragionamento toccando l'esercizio dall'elenco */
+  if(cardioActive&&cardioExIdx===i){currentExIdx=i;goScreen('s-cardio-timer');return;}
+  if(timerActive&&timerExIdx===i){currentExIdx=i;goScreen('s-timer');return;}
   currentExIdx=i;
   if(ex.type==='cardio'){renderCardioDetail();goScreen('s-cardio-detail');return;}
   currentSetIdx=0;
@@ -1365,7 +1501,7 @@ function askResetProgress(){
     if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
     clockSec=0;
     save();renderWorkoutScreen();renderTodayWorkouts();
-  });
+  },'Azzera');
 }
 
 /* SET + TIMER (punto 4: no schermata pausa, passa diretto) */
@@ -1392,13 +1528,14 @@ function logCurrentSet(){
 function goNextExOrActive(){var w=workouts[currentWorkoutIdx];var ni=currentExIdx+1;if(ni<w.exercises.length){currentExIdx=ni;currentSetIdx=0;var nx=w.exercises[ni];if(nx.type==='cardio'){renderCardioDetail();goScreen('s-cardio-detail');}else{renderExDetail();goScreen('s-ex-detail');}}else{backToWorkout();}}
 function startTimerScreen(secs){
   timerRemaining=secs;timerTotal=secs;timerActive=true;timerEndTs=Date.now()+secs*1000;
+  timerExIdx=currentExIdx;
   showMiniBar(false);if(timerInterval)clearInterval(timerInterval);
   updateTimerUI();goScreen('s-timer');
   timerInterval=setInterval(function(){
     timerRemaining=Math.max(0,Math.round((timerEndTs-Date.now())/1000));
     updateTimerUI();
     if(timerRemaining<=0){
-      clearInterval(timerInterval);timerActive=false;showMiniBar(false);
+      clearInterval(timerInterval);timerActive=false;timerExIdx=null;showMiniBar(false);
       playDoneSound();
       /* Punto 4: passa direttamente al prossimo set dopo il suono */
       setTimeout(function(){if(_goNextFn)_goNextFn();},700);
@@ -1413,7 +1550,7 @@ function updateTimerUI(){
   var ring=document.getElementById('timer-ring');if(ring)ring.setAttribute('stroke-dashoffset',Math.round(circ*(1-pct)));
 }
 function adjustTimer(d){timerRemaining=Math.max(0,timerRemaining+d);timerEndTs=Date.now()+timerRemaining*1000;timerTotal=Math.max(timerTotal,timerRemaining);updateTimerUI();}
-function skipTimer(){if(timerInterval)clearInterval(timerInterval);timerActive=false;showMiniBar(false);if(_goNextFn)_goNextFn();}
+function skipTimer(){if(timerInterval)clearInterval(timerInterval);timerActive=false;timerExIdx=null;showMiniBar(false);if(_goNextFn)_goNextFn();}
 
 /* UPDATE TEMPLATE (punto 8) */
 /* ===== SCHEDE RIUTILIZZABILI =====
@@ -1471,7 +1608,7 @@ function finishWorkout(){
   if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
   if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
   if(cardioInterval){clearInterval(cardioInterval);cardioInterval=null;}
-  timerActive=false;cardioActive=false;
+  timerActive=false;cardioActive=false;timerExIdx=null;cardioExIdx=null;
   stopAlarmSound();showMiniBar(false);showMiniCardioBar(false);
   updateTemplate();save();
   renderWorkoutScreen();
@@ -1481,8 +1618,8 @@ function finishWorkout(){
 /* VISIBILITY CHANGE */
 document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='visible'){
-    if(timerActive&&timerEndTs){timerRemaining=Math.max(0,Math.round((timerEndTs-Date.now())/1000));updateTimerUI();if(timerRemaining<=0){if(timerInterval)clearInterval(timerInterval);timerActive=false;showMiniBar(false);playDoneSound();setTimeout(function(){if(_goNextFn)_goNextFn();},700);}}
-    if(cardioActive&&cardioEndTs){cardioRemaining=Math.max(0,Math.round((cardioEndTs-Date.now())/1000));updateCardioUI();if(cardioRemaining<=0){if(cardioInterval)clearInterval(cardioInterval);cardioActive=false;showMiniCardioBar(false);playDoneSound();setTimeout(function(){goNextExOrActive();},600);}}
+    if(timerActive&&timerEndTs){timerRemaining=Math.max(0,Math.round((timerEndTs-Date.now())/1000));updateTimerUI();if(timerRemaining<=0){if(timerInterval)clearInterval(timerInterval);timerActive=false;timerExIdx=null;showMiniBar(false);playDoneSound();setTimeout(function(){if(_goNextFn)_goNextFn();},700);}}
+    if(cardioActive&&cardioEndTs){cardioRemaining=Math.max(0,Math.round((cardioEndTs-Date.now())/1000));updateCardioUI();if(cardioRemaining<=0){if(cardioInterval)clearInterval(cardioInterval);cardioActive=false;cardioExIdx=null;showMiniCardioBar(false);playDoneSound();setTimeout(function(){goNextExOrActive();},600);}}
   }
 });
 
