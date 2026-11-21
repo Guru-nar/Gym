@@ -66,7 +66,12 @@ input::placeholder{color:var(--dim);}
 .edit-row.dragging{opacity:0.4;border:1.5px dashed var(--blue);}
 .edit-row.drag-over{border:1.5px solid var(--blue);background:#1a2a3a;}
 .drag-handle{color:var(--muted);font-size:26px;cursor:grab;padding:4px 6px;flex-shrink:0;line-height:1;touch-action:none;}
-#mini-timer-bar,#mini-cardio-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(--border);padding:10px 16px;align-items:center;gap:12px;}
+#mini-timer-bar,#mini-cardio-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:#111;border-top:0.5px solid var(--border);padding:10px 16px;align-items:center;gap:12px;cursor:pointer;}
+#mini-timer-bar:active,#mini-cardio-bar:active{background:#191919;}
+/* Quando una mini barra e visibile il contenuto si sposta in su invece di
+   finirci sotto: prima nascondeva "Segna set fatto + pausa". */
+body.minibar-on .bottom{padding-bottom:104px;}
+body.minibar-on .scroll{padding-bottom:204px;}
 .sync-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;}
 .sync-ok{background:#14532d;color:#86efac;}
 .sync-err{background:#7f1d1d;color:#fca5a5;}
@@ -200,13 +205,14 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
   </div>
 </div>
 
-<!-- ALLENAMENTO CONFIG -->
+<!-- SCHEDA ALLENAMENTO (schermata unica: lista, avanzamento, modifica) -->
 <div class="screen" id="s-workout">
   <div class="topbar">
     <button class="back-btn" onclick="goScreen('s-home')">&#8249;</button>
-    <div class="topbar-title" id="workout-title-display" onclick="renameWorkout()" style="cursor:pointer;border-bottom:1px dashed #444;max-width:160px;display:inline-block;"></div>
+    <div class="topbar-title" id="workout-title-display" onclick="renameWorkout()" style="cursor:pointer;border-bottom:1px dashed #444;max-width:150px;display:inline-block;"></div>
+    <div style="color:var(--blue);font-size:14px;font-weight:600;display:none;" id="workout-clock">00:00</div>
     <div style="color:var(--muted);font-size:12px;" id="workout-date-display"></div>
-    <button onclick="openEditMode()" style="border:none;background:var(--card2);border-radius:10px;padding:7px 12px;color:var(--muted);font-size:13px;cursor:pointer;flex-shrink:0;">Modifica</button>
+    <button onclick="openWorkoutMenu()" style="border:none;background:var(--card2);border-radius:10px;padding:7px 12px;color:var(--muted);font-size:13px;cursor:pointer;flex-shrink:0;">Modifica</button>
   </div>
   <div class="scroll">
     <div id="workout-exercise-list"></div>
@@ -215,29 +221,30 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
     </div>
   </div>
   <div class="bottom">
-    <button class="btn btn-blue" onclick="startWorkout()">Inizia allenamento</button>
-    <button onclick="downloadPDF()" style="width:100%;border:0.5px solid var(--border);border-radius:14px;background:transparent;color:var(--muted);font-size:14px;padding:14px;cursor:pointer;">&#128196; Scarica PDF</button>
-    <button class="btn btn-red" onclick="deleteCurrentWorkout()" style="font-size:13px;padding:12px;opacity:.7;">Elimina allenamento</button>
+    <button class="btn btn-blue" id="btn-start" onclick="startOrContinueWorkout()">Inizia allenamento</button>
+    <button class="btn btn-green" id="btn-finish" style="display:none;" onclick="finishWorkout()">Termina allenamento</button>
+    <button id="btn-reset" style="display:none;width:100%;border:0.5px solid var(--border);border-radius:14px;background:transparent;color:var(--muted);font-size:13px;padding:12px;cursor:pointer;" onclick="askResetProgress()">&#8635; Azzera progressi</button>
   </div>
 </div>
 
-<!-- ALLENAMENTO ATTIVO -->
-<div class="screen" id="s-active">
-  <div class="topbar">
-    <button class="back-btn" onclick="goScreen('s-workout')">&#8249;</button>
-    <div class="topbar-title" id="active-workout-name"></div>
-    <div style="color:var(--blue);font-size:14px;font-weight:600;" id="active-clock">00:00</div>
-  </div>
-  <div class="scroll"><div id="active-ex-list"></div></div>
-  <div class="bottom">
-    <button class="btn btn-green" onclick="finishWorkout()">Termina allenamento</button>
+<!-- MENU MODIFICA: raccoglie riordina, rinomina, PDF ed elimina -->
+<div id="modal-workout-menu" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;">
+  <div style="width:100%;height:100%;background:rgba(0,0,0,.65);" onclick="closeWorkoutMenu()"></div>
+  <div style="position:absolute;bottom:0;left:0;right:0;background:#161616;border-radius:24px 24px 0 0;padding:22px 20px 42px;">
+    <div style="color:#fff;font-size:17px;font-weight:600;margin-bottom:4px;" id="menu-workout-name">Allenamento</div>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:18px;">Cosa vuoi fare?</div>
+    <button class="btn btn-dark" style="margin-bottom:10px;text-align:left;padding:15px 16px;" onclick="closeWorkoutMenu();openEditMode();">&#8801;&nbsp;&nbsp; Riordina esercizi</button>
+    <button class="btn btn-dark" style="margin-bottom:10px;text-align:left;padding:15px 16px;" onclick="closeWorkoutMenu();renameWorkout();">&#9998;&nbsp;&nbsp; Rinomina allenamento</button>
+    <button class="btn btn-dark" style="margin-bottom:10px;text-align:left;padding:15px 16px;" onclick="closeWorkoutMenu();downloadPDF();">&#128196;&nbsp;&nbsp; Scarica PDF</button>
+    <button class="btn btn-dark" style="margin-bottom:16px;text-align:left;padding:15px 16px;color:#fca5a5;" onclick="closeWorkoutMenu();deleteCurrentWorkout();">&#128465;&nbsp;&nbsp; Elimina allenamento</button>
+    <button class="btn btn-dark" style="opacity:.7;" onclick="closeWorkoutMenu()">Annulla</button>
   </div>
 </div>
 
 <!-- DETTAGLIO FORZA -->
 <div class="screen" id="s-ex-detail">
   <div class="topbar">
-    <button class="back-btn" onclick="backToActive()">&#8249;</button>
+    <button class="back-btn" onclick="backToWorkout()">&#8249;</button>
     <div class="topbar-title" id="ex-detail-name" onclick="renameExercise()" style="cursor:pointer;border-bottom:1px dashed #444;max-width:180px;display:inline-block;"></div>
     <div id="ex-progress-badge" class="tag tag-blue" style="font-size:12px;"></div>
   </div>
@@ -277,7 +284,7 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
 <!-- DETTAGLIO CARDIO -->
 <div class="screen" id="s-cardio-detail">
   <div class="topbar">
-    <button class="back-btn" onclick="backToActive()">&#8249;</button>
+    <button class="back-btn" onclick="backToWorkout()">&#8249;</button>
     <div class="topbar-title" id="cardio-detail-name" onclick="renameExercise()" style="cursor:pointer;border-bottom:1px dashed #f97316;max-width:180px;display:inline-block;"></div>
     <div id="cardio-progress-badge" class="tag tag-orange" style="font-size:11px;">Cardio</div>
   </div>
@@ -304,10 +311,10 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
     <div style="background:var(--card);border-radius:14px;padding:14px 16px;margin-bottom:14px;border:0.5px solid var(--border);">
       <div style="color:var(--muted);font-size:11px;margin-bottom:12px;letter-spacing:.5px;">DATI ESERCIZIO</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Livello</div><input type="number" id="cardio-level" min="0" max="30" step="1" value="0" onchange="saveCardioData()"/></div>
-        <div><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Inclinazione %</div><input type="number" id="cardio-incline" min="0" max="30" step="0.5" value="0" onchange="saveCardioData()"/></div>
-        <div><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Calorie</div><input type="number" id="cardio-calories" min="0" step="1" value="0" onchange="saveCardioData()"/></div>
-        <div><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Velocita km/h</div><input type="number" id="cardio-speed" min="0" max="30" step="0.5" value="0" onchange="saveCardioData()"/></div>
+        <div id="f-speed"><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Velocita km/h</div><input type="number" id="cardio-speed" min="0" max="30" step="0.5" value="0" onchange="saveCardioData()"/></div>
+        <div id="f-level"><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Livello</div><input type="number" id="cardio-level" min="0" max="30" step="1" value="0" onchange="saveCardioData()"/></div>
+        <div id="f-incline"><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Inclinazione %</div><input type="number" id="cardio-incline" min="0" max="30" step="0.5" value="0" onchange="saveCardioData()"/></div>
+        <div id="f-calories"><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Calorie</div><input type="number" id="cardio-calories" min="0" step="1" value="0" onchange="saveCardioData()"/></div>
       </div>
       <div style="margin-top:12px;"><div style="color:var(--muted);font-size:11px;margin-bottom:4px;">Note</div><input type="text" id="cardio-note-input" placeholder="Es. 7.5 km/h, inclinazione 3..." oninput="saveCardioData()"/></div>
     </div>
@@ -393,28 +400,28 @@ input[type=email],input[type=password]{background:#222;border:0.5px solid #2a2a2
   </div>
 </div>
 
-<!-- MINI TIMER BAR forza -->
-<div id="mini-timer-bar">
+<!-- MINI BARRA PAUSA: tutta la barra e premibile, niente pulsante "Apri" -->
+<div id="mini-timer-bar" onclick="goScreen('s-timer')">
   <div style="width:40px;height:40px;border-radius:50%;border:2.5px solid var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
     <span id="mini-timer-txt" style="color:var(--blue);font-size:11px;font-weight:700;">1:30</span>
   </div>
   <div style="flex:1;min-width:0;">
-    <div style="color:var(--muted);font-size:11px;">Pausa in corso</div>
+    <div style="color:var(--muted);font-size:11px;">Pausa in corso &#183; tocca per aprire</div>
     <div id="mini-timer-label" style="color:#fff;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
   </div>
-  <button onclick="goScreen('s-timer')" style="border:none;background:var(--blue);color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;">Apri</button>
+  <div style="color:var(--blue);font-size:28px;line-height:1;flex-shrink:0;padding-right:4px;">&#8250;</div>
 </div>
 
-<!-- MINI CARDIO BAR (punto 5) -->
-<div id="mini-cardio-bar">
+<!-- MINI BARRA CARDIO: stessa cosa -->
+<div id="mini-cardio-bar" onclick="goScreen('s-cardio-timer')">
   <div style="width:40px;height:40px;border-radius:50%;border:2.5px solid var(--orange);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
     <span id="mini-cardio-txt" style="color:var(--orange);font-size:11px;font-weight:700;">10:00</span>
   </div>
   <div style="flex:1;min-width:0;">
-    <div style="color:var(--muted);font-size:11px;">Cardio in corso</div>
+    <div style="color:var(--muted);font-size:11px;">Cardio in corso &#183; tocca per aprire</div>
     <div id="mini-cardio-label" style="color:#fff;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
   </div>
-  <button onclick="goScreen('s-cardio-timer')" style="border:none;background:var(--orange);color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;">Apri</button>
+  <div style="color:var(--orange);font-size:28px;line-height:1;flex-shrink:0;padding-right:4px;">&#8250;</div>
 </div>
 
 <!-- MODAL AGGIUNGI ESERCIZIO (punto 9: sfondo scuro, testo bianco) -->
@@ -487,7 +494,10 @@ var currentUser=null;
 var workouts=[];
 var currentWorkoutIdx=null,currentExIdx=null,currentSetIdx=0;
 var selectedExType='forza',selectedTemplateIdx=null;
-var calYear,calMonth;
+/* inizializzati subito, non in initApp: il callback di Firebase puo disegnare
+   il calendario prima che initApp parta, e si vedeva "undefined undefined" */
+var _oggi=new Date();
+var calYear=_oggi.getFullYear(),calMonth=_oggi.getMonth();
 var timerInterval=null,timerRemaining=0,timerTotal=0,timerActive=false,timerEndTs=null;
 var cardioInterval=null,cardioRemaining=0,cardioTotal=0,cardioActive=false,cardioEndTs=null;
 var clockInterval=null,clockSec=0;
@@ -673,6 +683,7 @@ function saveLocal(){
   try{localStorage.setItem(keyW(),JSON.stringify(workouts));localStorage.setItem(keyT(),JSON.stringify(TEMPLATES));}catch(e){}
 }
 function save(){
+  syncScheda();
   saveLocal();
   if(currentUser){clearTimeout(saveTimeout);saveTimeout=setTimeout(function(){saveToFirebase();},1500);}
 }
@@ -694,11 +705,12 @@ function loadFromFirebase(){
     if(doc.exists){
       var data=doc.data();
       workouts=(data.workouts&&Array.isArray(data.workouts))?sanitize(data.workouts):[];
-      if(data.templates&&Array.isArray(data.templates)&&data.templates.length){
-        resetTemplates();
-        data.templates.forEach(function(t,i){if(TEMPLATES[i])TEMPLATES[i]=t;});
-      }
-      saveLocal();
+      /* le schede sono una lista che l'utente puo allungare e accorciare:
+         la sostituisco per intero, altrimenti quelle cancellate tornerebbero */
+      if(data.templates&&Array.isArray(data.templates))TEMPLATES=sanitizeTemplates(data.templates);
+      else TEMPLATES=defaultTemplates();
+      if(migrateWorkoutsToSchede()){saveLocal();saveToFirebase();}
+      else saveLocal();
     }else{
       saveToFirebase();
     }
@@ -711,9 +723,29 @@ function loadLocal(){
   workouts=[];resetTemplates();
   try{
     var w=localStorage.getItem(keyW());if(w)workouts=sanitize(JSON.parse(w));
-    var t=localStorage.getItem(keyT());if(t){var pt=JSON.parse(t);if(Array.isArray(pt))pt.forEach(function(x,i){if(TEMPLATES[i])TEMPLATES[i]=x;});}
+    var t=localStorage.getItem(keyT());if(t){var pt=JSON.parse(t);if(Array.isArray(pt))TEMPLATES=sanitizeTemplates(pt);}
   }catch(e){workouts=[];}
 }
+/* una scheda valida ha un nome e una lista di esercizi, senza spunte */
+function sanitizeTemplates(arr){
+  if(!Array.isArray(arr))return defaultTemplates();
+  var out=[];
+  for(var i=0;i<arr.length;i++){
+    var t=arr[i];
+    if(!t||typeof t.name!=='string'||!Array.isArray(t.exercises))continue;
+    out.push({name:t.name,exercises:stripDone(t.exercises)});
+  }
+  return out;
+}
+/* toglie le spunte: una scheda e un modello, non una sessione svolta */
+function stripDone(exs){
+  return deepClone(exs).map(function(e){
+    if(e.type==='cardio'){e.done=false;}
+    else if(e.sets){e.sets=e.sets.map(function(s){return{kg:s.kg,reps:s.reps,done:false,restSeconds:s.restSeconds};});}
+    return e;
+  });
+}
+
 function sanitize(arr){
   if(!Array.isArray(arr))return[];
   arr.forEach(function(wk){
@@ -862,12 +894,15 @@ function goScreen(id){
   var el=document.getElementById(id);
   if(el)el.classList.add('active');
   if(!ROOT_SCREENS[id])armBackTrap();
+  /* da qui passa OGNI cambio schermata, quindi le mini barre restano sempre
+     coerenti, anche entrando nel timer dalla barra stessa */
+  refreshMiniBars();
 }
 
 /* Tasto Indietro di Android (hardware o gesto): deve tornare alla schermata
    precedente dentro l'app, non chiudere l'app in mezzo a un allenamento. */
 function anyModalOpen(){
-  var ids=['modal-confirm','modal-rename','modal-add-ex','modal-new-workout'];
+  var ids=['modal-confirm','modal-rename','modal-add-ex','modal-new-workout','modal-workout-menu'];
   for(var i=0;i<ids.length;i++){
     var m=document.getElementById(ids[i]);
     if(m&&m.style.display==='block')return ids[i];
@@ -882,6 +917,7 @@ window.addEventListener('popstate',function(){
     if(open==='modal-confirm')closeConfirm();
     else if(open==='modal-rename')closeRename();
     else if(open==='modal-add-ex')closeModal();
+    else if(open==='modal-workout-menu')closeWorkoutMenu();
     else closeNewWorkoutModal();
     armBackTrap();
     return;
@@ -889,16 +925,32 @@ window.addEventListener('popstate',function(){
   /* 2. altrimenti si comporta come la freccia in alto a sinistra */
   var cur=currentScreenId();
   if(cur==='s-workout'||cur==='s-admin'){armBackTrap();goScreen('s-home');return;}
-  if(cur==='s-active'){armBackTrap();goScreen('s-workout');return;}
-  if(cur==='s-ex-detail'||cur==='s-cardio-detail'){armBackTrap();backToActive();return;}
+  /* un solo indietro: dal dettaglio esercizio si torna alla scheda unica */
+  if(cur==='s-ex-detail'||cur==='s-cardio-detail'){armBackTrap();backToWorkout();return;}
   if(cur==='s-timer'){armBackTrap();timerGoBack();return;}
   if(cur==='s-cardio-timer'){armBackTrap();cardioTimerGoBack();return;}
   if(cur==='s-edit-mode'){armBackTrap();cancelEditMode();return;}
   /* 3. sulla home o sul login lascio uscire normalmente */
 });
-function showMiniBar(v){document.getElementById('mini-timer-bar').style.display=v?'flex':'none';}
-function showMiniCardioBar(v){document.getElementById('mini-cardio-bar').style.display=v?'flex':'none';}
-function backToActive(){renderActiveScreen();showMiniBar(timerActive);showMiniCardioBar(cardioActive);goScreen('s-active');}
+/* Le mini barre non si gestiscono piu a mano: dipendono solo da due cose,
+   se il timer sta andando e su quale schermata sei. Dentro il timer a tutto
+   schermo spariscono, perche il timer grande e gia li. */
+function refreshMiniBars(){
+  var cur=currentScreenId();
+  var mostraPausa=timerActive&&cur!=='s-timer';
+  var mostraCardio=cardioActive&&cur!=='s-cardio-timer';
+  var b1=document.getElementById('mini-timer-bar');
+  var b2=document.getElementById('mini-cardio-bar');
+  if(b1)b1.style.display=mostraPausa?'flex':'none';
+  if(b2)b2.style.display=mostraCardio?'flex':'none';
+  /* la classe fa scendere il contenuto, cosi la barra non copre i pulsanti */
+  if(mostraPausa||mostraCardio)document.body.classList.add('minibar-on');
+  else document.body.classList.remove('minibar-on');
+}
+function showMiniBar(){refreshMiniBars();}
+function showMiniCardioBar(){refreshMiniBars();}
+/* Dal dettaglio di un esercizio si torna SEMPRE alla scheda unica, in un colpo solo. */
+function backToWorkout(){renderWorkoutScreen();showMiniBar(timerActive);showMiniCardioBar(cardioActive);goScreen('s-workout');}
 function timerGoBack(){showMiniBar(true);document.getElementById('mini-timer-label').textContent=document.getElementById('timer-label').textContent;goScreen('s-ex-detail');}
 function cardioTimerGoBack(){showMiniCardioBar(true);document.getElementById('mini-cardio-label').textContent=document.getElementById('cardio-timer-label').textContent;goScreen('s-cardio-detail');}
 
@@ -991,14 +1043,43 @@ function openNewWorkout(preD,preM,preY){
   selectedTemplateIdx=null;document.getElementById('workout-name-input').value='';
   var now=new Date();var d=preD!==undefined?preD:now.getDate(),m=preM!==undefined?preM:now.getMonth(),y=preY!==undefined?preY:now.getFullYear();
   document.getElementById('workout-date-picker').value=y+'-'+pad(m+1)+'-'+pad(d);
-  var h='';for(var i=0;i<TEMPLATES.length;i++)h+='<div id="tpl-'+i+'" onclick="selectTemplate('+i+')" style="background:var(--card2);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;color:var(--muted);font-size:14px;">'+escHtml(TEMPLATES[i].name)+'</div>';
-  document.getElementById('template-list').innerHTML=h;
+  renderTemplateList();
   document.getElementById('modal-new-workout').style.display='block';armBackTrap();
 }
+
+/* Lista delle schede salvate, ognuna con il suo cestino */
+function renderTemplateList(){
+  var box=document.getElementById('template-list');if(!box)return;
+  if(TEMPLATES.length===0){
+    box.innerHTML='<div style="color:var(--dim);font-size:13px;padding:4px 0 8px;">Nessuna scheda salvata. Scrivi un nome qui sotto e crea il tuo allenamento: diventera una scheda riutilizzabile.</div>';
+    return;
+  }
+  var h='';
+  for(var i=0;i<TEMPLATES.length;i++){
+    var t=TEMPLATES[i];
+    var n=(t.exercises||[]).length;
+    var sel=(selectedTemplateIdx===i);
+    h+='<div style="position:relative;margin-bottom:8px;">';
+    h+='<div id="tpl-'+i+'" onclick="selectTemplate('+i+')" style="background:'+(sel?'#1e3a6e':'var(--card2)')+';border:0.5px solid '+(sel?'var(--blue)':'var(--border)')+';border-radius:10px;padding:12px 52px 12px 14px;cursor:pointer;color:'+(sel?'#93c5fd':'var(--muted)')+';font-size:14px;">';
+    h+='<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(t.name)+'</div>';
+    h+='<div style="color:var(--dim);font-size:11px;margin-top:2px;">'+n+(n===1?' esercizio':' esercizi')+'</div>';
+    h+='</div>';
+    h+='<button onclick="event.stopPropagation();askDeleteScheda('+i+')" title="Elimina scheda" style="position:absolute;right:0;top:0;bottom:0;width:46px;border:none;background:transparent;color:#f87171;font-size:17px;cursor:pointer;">&#128465;</button>';
+    h+='</div>';
+  }
+  box.innerHTML=h;
+}
+function openWorkoutMenu(){
+  var w=workouts[currentWorkoutIdx];if(!w)return;
+  document.getElementById('menu-workout-name').textContent=w.name;
+  document.getElementById('modal-workout-menu').style.display='block';armBackTrap();
+}
+function closeWorkoutMenu(){document.getElementById('modal-workout-menu').style.display='none';}
+
 function closeNewWorkoutModal(){document.getElementById('modal-new-workout').style.display='none';}
 function selectTemplate(idx){
   selectedTemplateIdx=idx;
-  for(var i=0;i<TEMPLATES.length;i++){var el=document.getElementById('tpl-'+i);if(!el)continue;if(i===idx){el.style.background='#1e3a6e';el.style.color='#93c5fd';el.style.borderColor='var(--blue)';}else{el.style.background='var(--card2)';el.style.color='var(--muted)';el.style.borderColor='var(--border)';}}
+  renderTemplateList();
   document.getElementById('workout-name-input').value=TEMPLATES[idx].name;
 }
 function deepClone(o){return JSON.parse(JSON.stringify(o));}
@@ -1014,29 +1095,131 @@ function createWorkout(){
   save();closeNewWorkoutModal();buildCalendar();renderTodayWorkouts();renderWorkoutScreen();goScreen('s-workout');
 }
 function openWorkout(idx){currentWorkoutIdx=idx;renderWorkoutScreen();goScreen('s-workout');}
-function askDeleteWorkout(idx){showConfirm('Elimina allenamento','Vuoi eliminare "'+workouts[idx].name+'"?',function(){workouts.splice(idx,1);if(currentWorkoutIdx===idx)currentWorkoutIdx=null;save();buildCalendar();renderTodayWorkouts();});}
+function askDeleteWorkout(idx){showConfirm('Elimina allenamento','Vuoi eliminare "'+workouts[idx].name+'"? La scheda resta disponibile per i prossimi giorni.',function(){workouts.splice(idx,1);currentWorkoutIdx=null;save();buildCalendar();renderTodayWorkouts();});}
 function deleteCurrentWorkout(){askDeleteWorkout(currentWorkoutIdx);goScreen('s-home');}
-function renameWorkout(){var w=workouts[currentWorkoutIdx];openRenameModal('Rinomina allenamento',w.name,function(n){w.name=n;document.getElementById('workout-title-display').textContent=n;document.getElementById('active-workout-name').textContent=n;save();renderTodayWorkouts();});}
+function renameWorkout(){
+  var w=workouts[currentWorkoutIdx];
+  openRenameModal('Rinomina allenamento',w.name,function(n){
+    var vecchio=w.name;
+    var ti=findScheda(vecchio);
+    if(ti!==-1&&findScheda(n)===-1)TEMPLATES[ti].name=n;  /* la scheda segue il nome */
+    w.name=n;
+    document.getElementById('workout-title-display').textContent=n;
+    save();renderTodayWorkouts();
+  });
+}
 function renameWorkoutFromHome(idx){openRenameModal('Rinomina allenamento',workouts[idx].name,function(n){workouts[idx].name=n;save();renderTodayWorkouts();buildCalendar();});}
 
-/* WORKOUT SCREEN */
+/* ===== SCHERMATA UNICA =====
+   Una sola lista che fa tutto: mostra l'avanzamento (spunte e barre) e
+   permette di aggiungere, rinominare ed eliminare gli esercizi. Prima erano
+   due schermate gemelle e servivano due "indietro" per tornare a modificare. */
+
+/* quanti set/quanto cardio e gia stato fatto in un esercizio */
+function exProgress(ex){
+  if(ex.type==='cardio')return{done:ex.done?1:0,total:1};
+  var s=ex.sets||[],d=0;
+  for(var i=0;i<s.length;i++)if(s[i].done)d++;
+  return{done:d,total:s.length||1};
+}
+function exIsDone(ex){var p=exProgress(ex);return p.total>0&&p.done===p.total;}
+/* indice del primo esercizio senza spunta, -1 se sono tutti fatti */
+function firstUndoneIdx(w){
+  for(var i=0;i<w.exercises.length;i++)if(!exIsDone(w.exercises[i]))return i;
+  return -1;
+}
+function isStarted(w){
+  if(!w)return false;
+  if(w.startedAt)return true;
+  /* allenamenti salvati prima che esistesse startedAt: se c'e almeno una
+     spunta vuol dire che e stato svolto, e va mostrato come tale */
+  var ex=w.exercises||[];
+  for(var i=0;i<ex.length;i++){
+    if(ex[i].type==='cardio'){if(ex[i].done)return true;}
+    else{var s=ex[i].sets||[];for(var j=0;j<s.length;j++)if(s[j].done)return true;}
+  }
+  return !!w.completedAt;
+}
+
 function renderWorkoutScreen(){
-  var w=workouts[currentWorkoutIdx];
+  var w=workouts[currentWorkoutIdx];if(!w)return;
   document.getElementById('workout-title-display').textContent=w.name;
   document.getElementById('workout-date-display').textContent=w.day+'/'+pad(w.month+1)+'/'+w.year;
+
   var list=document.getElementById('workout-exercise-list');
-  if(w.exercises.length===0){list.innerHTML='<div style="color:var(--dim);font-size:13px;margin-bottom:16px;">Nessun esercizio. Aggiungine uno sotto.</div>';return;}
   var html='';
-  for(var i=0;i<w.exercises.length;i++){
-    var ex=w.exercises[i];var ic=ex.type==='cardio';
-    var sub=ic?('Cardio - '+Math.round((ex.durationSeconds||600)/60)+' min'):('Pausa: '+ex.restSeconds+'s - '+(ex.sets?ex.sets.length:0)+' set');
-    html+='<div style="position:relative;margin-bottom:10px;">';
-    html+='<div class="card" onclick="openExDetailFromWorkout('+i+')" style="cursor:pointer;margin-bottom:0;padding-right:110px;"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="color:#fff;font-size:15px;font-weight:600;">'+escHtml(ex.name)+'</div><span class="tag '+(ic?'tag-orange':'tag-blue')+'">'+(ic?'&#127939;':'&#127947;')+'</span></div><div style="color:var(--muted);font-size:12px;margin-top:4px;">'+sub+'</div></div>';
-    html+='<button onclick="event.stopPropagation();renameExerciseFromList('+i+')" style="position:absolute;right:60px;top:0;bottom:0;width:46px;border:none;background:#1e3a6e;color:#93c5fd;font-size:16px;cursor:pointer;">&#9998;</button>';
-    html+='<button onclick="event.stopPropagation();askDeleteExercise('+i+')" style="position:absolute;right:0;top:0;bottom:0;width:60px;border:none;background:#7f1d1d;border-radius:0 14px 14px 0;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;">Elimina</button>';
-    html+='</div>';
+  if(w.exercises.length===0){
+    html='<div style="color:var(--dim);font-size:13px;margin-bottom:16px;">Nessun esercizio. Aggiungine uno sotto.</div>';
+  }else{
+    var nextIdx=firstUndoneIdx(w);
+    for(var i=0;i<w.exercises.length;i++){
+      var ex=w.exercises[i];var ic=ex.type==='cardio';
+      var p=exProgress(ex);var fatto=exIsDone(ex);
+      var pct=p.total>0?Math.round(p.done/p.total*100):0;
+      var prossimo=(isStarted(w)&&i===nextIdx);
+      var sub=ic?('Cardio - '+Math.round((ex.durationSeconds||600)/60)+' min')
+                :('Pausa: '+ex.restSeconds+'s - '+p.total+' set');
+      if(isStarted(w)&&!ic)sub=p.done+'/'+p.total+' set completati';
+      var bordo=fatto?'var(--green)':(prossimo?'var(--blue)':'var(--border)');
+      var colore=ic?'var(--orange)':'var(--blue)';
+
+      html+='<div style="position:relative;margin-bottom:10px;">';
+      html+='<div class="card" onclick="openExDetailFromWorkout('+i+')" style="cursor:pointer;margin-bottom:0;padding-right:110px;border-color:'+bordo+';">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">';
+      html+='<div style="color:#fff;font-size:15px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(ex.name)+'</div>';
+      if(fatto)html+='<div style="width:24px;height:24px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0;">&#10003;</div>';
+      else html+='<span class="tag '+(ic?'tag-orange':'tag-blue')+'" style="flex-shrink:0;">'+(ic?'&#127939;':'&#127947;')+'</span>';
+      html+='</div>';
+      if(isStarted(w))html+='<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%;background:'+(fatto?'var(--green)':colore)+';"></div></div>';
+      html+='<div style="color:var(--muted);font-size:12px;'+(isStarted(w)?'':'margin-top:4px;')+'">'+sub+(prossimo?' &nbsp;<span style="color:var(--blue);font-weight:600;">&#9654; prossimo</span>':'')+'</div>';
+      html+='</div>';
+      html+='<button onclick="event.stopPropagation();renameExerciseFromList('+i+')" style="position:absolute;right:60px;top:0;bottom:0;width:46px;border:none;background:#1e3a6e;color:#93c5fd;font-size:16px;cursor:pointer;">&#9998;</button>';
+      html+='<button onclick="event.stopPropagation();askDeleteExercise('+i+')" style="position:absolute;right:0;top:0;bottom:0;width:60px;border:none;background:#7f1d1d;border-radius:0 14px 14px 0;color:#fca5a5;font-size:11px;font-weight:600;cursor:pointer;">Elimina</button>';
+      html+='</div>';
+    }
   }
   list.innerHTML=html;
+  renderWorkoutButtons();
+}
+
+/* Il pulsante principale cambia da solo: Inizia -> Continua -> tutti completati */
+function renderWorkoutButtons(){
+  var w=workouts[currentWorkoutIdx];if(!w)return;
+  var start=document.getElementById('btn-start');
+  var finish=document.getElementById('btn-finish');
+  var reset=document.getElementById('btn-reset');
+  var clock=document.getElementById('workout-clock');
+  var avviato=isStarted(w);
+  var chiuso=!!w.completedAt;
+  var prossimo=firstUndoneIdx(w);
+  var vuoto=w.exercises.length===0;
+
+  finish.style.display=(avviato&&!chiuso)?'block':'none';
+  reset.style.display=(avviato||chiuso)?'block':'none';
+  clock.style.display=(avviato&&!chiuso)?'block':'none';
+
+  if(chiuso){
+    start.innerHTML='&#10003; Allenamento terminato';
+    start.className='btn btn-dark';
+    start.disabled=true;start.style.opacity='0.55';
+    start.style.display='block';
+  }else if(!avviato){
+    start.textContent='Inizia allenamento';
+    start.className='btn btn-blue';
+    start.disabled=vuoto;start.style.opacity=vuoto?'0.45':'1';
+    start.style.display='block';
+  }else if(prossimo===-1){
+    /* tutti gli esercizi hanno la spunta: resta in evidenza solo Termina */
+    start.innerHTML='&#10003; Tutti gli esercizi completati';
+    start.className='btn btn-dark';
+    start.disabled=true;start.style.opacity='0.55';
+    start.style.display='block';
+  }else{
+    start.textContent='Continua allenamento';
+    start.className='btn btn-blue';
+    start.disabled=false;start.style.opacity='1';
+    start.style.display='block';
+  }
 }
 
 /* AGGIUNGI ESERCIZIO */
@@ -1047,13 +1230,14 @@ function filterSugg(){var q=document.getElementById('ex-search-input').value.toL
 function selectSugg(n){document.getElementById('ex-search-input').value=n;}
 function addExerciseFromModal(){var name=document.getElementById('ex-search-input').value.trim();if(!name)return;var w=workouts[currentWorkoutIdx];if(selectedExType==='cardio')w.exercises.push(mkCardio(name,600));else w.exercises.push({name:name,type:'forza',restSeconds:90,note:'',sets:[{kg:0,reps:8,done:false,restSeconds:90}]});save();closeModal();renderWorkoutScreen();}
 function askDeleteExercise(idx){showConfirm('Elimina esercizio','Vuoi eliminare "'+workouts[currentWorkoutIdx].exercises[idx].name+'"?',function(){workouts[currentWorkoutIdx].exercises.splice(idx,1);save();renderWorkoutScreen();});}
-function deleteCurrentExercise(){showConfirm('Elimina esercizio','Vuoi eliminare "'+workouts[currentWorkoutIdx].exercises[currentExIdx].name+'"?',function(){workouts[currentWorkoutIdx].exercises.splice(currentExIdx,1);currentExIdx=null;save();renderActiveScreen();renderWorkoutScreen();goScreen('s-active');});}
+function deleteCurrentExercise(){showConfirm('Elimina esercizio','Vuoi eliminare "'+workouts[currentWorkoutIdx].exercises[currentExIdx].name+'"?',function(){workouts[currentWorkoutIdx].exercises.splice(currentExIdx,1);currentExIdx=null;save();renderWorkoutScreen();goScreen('s-workout');});}
 function renameExercise(){var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];var ic=ex.type==='cardio';openRenameModal('Rinomina esercizio',ex.name,function(n){ex.name=n;document.getElementById(ic?'cardio-detail-name':'ex-detail-name').textContent=n;save();renderWorkoutScreen();});}
 function renameExerciseFromList(idx){openRenameModal('Rinomina esercizio',workouts[currentWorkoutIdx].exercises[idx].name,function(n){workouts[currentWorkoutIdx].exercises[idx].name=n;save();renderWorkoutScreen();});}
 
 /* DETTAGLIO FORZA */
-function openExDetailFromWorkout(idx){currentExIdx=idx;currentSetIdx=0;var ex=workouts[currentWorkoutIdx].exercises[idx];if(ex.type==='cardio'){renderCardioDetail();goScreen('s-cardio-detail');}else{renderExDetail();goScreen('s-ex-detail');}}
-function openExFromActive(idx){currentExIdx=idx;var ex=workouts[currentWorkoutIdx].exercises[idx];if(ex.type==='cardio'){renderCardioDetail();goScreen('s-cardio-detail');}else{currentSetIdx=-1;for(var i=0;i<ex.sets.length;i++){if(!ex.sets[i].done){currentSetIdx=i;break;}}if(currentSetIdx===-1)currentSetIdx=ex.sets.length-1;renderExDetail();goScreen('s-ex-detail');}}
+/* toccare un esercizio dalla lista fa lo stesso di "Continua": si posiziona
+   sul primo set non ancora fatto, non sempre sul primo in assoluto */
+function openExDetailFromWorkout(idx){openExerciseAt(idx);}
 function renderExDetail(){
   var w=workouts[currentWorkoutIdx],ex=w.exercises[currentExIdx];
   document.getElementById('ex-detail-name').textContent=ex.name;
@@ -1083,7 +1267,15 @@ function saveNote(){workouts[currentWorkoutIdx].exercises[currentExIdx].note=doc
 function askDeleteSet(idx){var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];if(ex.sets.length<=1){showConfirm('Ultimo set','Non puoi eliminare l\'unico set.',function(){});return;}showConfirm('Elimina set '+(idx+1),'Vuoi eliminare questo set?',function(){ex.sets.splice(idx,1);if(currentSetIdx>=ex.sets.length)currentSetIdx=ex.sets.length-1;save();renderExDetail();});}
 
 /* DETTAGLIO CARDIO */
-function renderCardioDetail(){var w=workouts[currentWorkoutIdx],ex=w.exercises[currentExIdx];document.getElementById('cardio-detail-name').textContent=ex.name;document.getElementById('cardio-progress-badge').textContent=(currentExIdx+1)+'/'+w.exercises.length+' Cardio';document.getElementById('cardio-level').value=ex.level||0;document.getElementById('cardio-incline').value=ex.incline||0;document.getElementById('cardio-calories').value=ex.calories||0;document.getElementById('cardio-speed').value=ex.speed||0;document.getElementById('cardio-note-input').value=ex.note||'';document.getElementById('cardio-status-label').textContent=ex.done?'Completato':'Non ancora completato';updateCardioDurDisplay(ex.durationSeconds||600);}
+/* Il tapis roulant non ha "livelli": si imposta velocita e inclinazione.
+   Cyclette, ellittica e vogatore invece il livello (la resistenza) ce l'hanno. */
+function isTapisRoulant(nome){
+  var n=String(nome||'').toLowerCase();
+  return n.indexOf('tapis')>=0||n.indexOf('tappeto')>=0||n.indexOf('treadmill')>=0;
+}
+function renderCardioDetail(){var w=workouts[currentWorkoutIdx],ex=w.exercises[currentExIdx];
+  var senzaLivello=isTapisRoulant(ex.name);
+  document.getElementById('f-level').style.display=senzaLivello?'none':'block';document.getElementById('cardio-detail-name').textContent=ex.name;document.getElementById('cardio-progress-badge').textContent=(currentExIdx+1)+'/'+w.exercises.length+' Cardio';document.getElementById('cardio-level').value=ex.level||0;document.getElementById('cardio-incline').value=ex.incline||0;document.getElementById('cardio-calories').value=ex.calories||0;document.getElementById('cardio-speed').value=ex.speed||0;document.getElementById('cardio-note-input').value=ex.note||'';document.getElementById('cardio-status-label').textContent=ex.done?'Completato':'Non ancora completato';updateCardioDurDisplay(ex.durationSeconds||600);}
 function updateCardioDurDisplay(s){var m=Math.floor(s/60),sc=s%60;document.getElementById('cardio-duration-display').textContent=m+':'+(sc<10?'0':'')+sc;}
 function adjustCardioDuration(d){var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];ex.durationSeconds=Math.max(60,Math.min(7200,(ex.durationSeconds||600)+d));updateCardioDurDisplay(ex.durationSeconds);save();}
 function setCardioDuration(s){var ex=workouts[currentWorkoutIdx].exercises[currentExIdx];ex.durationSeconds=s;updateCardioDurDisplay(s);save();}
@@ -1118,31 +1310,62 @@ function updateCardioUI(){
 function adjustCardioTimer(d){cardioRemaining=Math.max(0,cardioRemaining+d);cardioEndTs=Date.now()+cardioRemaining*1000;cardioTotal=Math.max(cardioTotal,cardioRemaining);updateCardioUI();}
 function stopCardioTimer(){if(cardioInterval)clearInterval(cardioInterval);cardioActive=false;showMiniCardioBar(false);workouts[currentWorkoutIdx].exercises[currentExIdx].done=true;save();renderCardioDetail();goScreen('s-cardio-detail');}
 
-/* AVVIO ALLENAMENTO */
-function startWorkout(){
-  var w=workouts[currentWorkoutIdx];if(w.exercises.length===0){alert('Aggiungi almeno un esercizio!');return;}
-  for(var i=0;i<w.exercises.length;i++){var ex=w.exercises[i];if(ex.type==='cardio')ex.done=false;else for(var j=0;j<(ex.sets||[]).length;j++)ex.sets[j].done=false;}
-  clockSec=0;if(clockInterval)clearInterval(clockInterval);
-  clockInterval=setInterval(function(){clockSec++;var ms=String(Math.floor(clockSec/60)).padStart(2,'0'),ss=String(clockSec%60).padStart(2,'0');var el=document.getElementById('active-clock');if(el)el.textContent=ms+':'+ss;},1000);
-  document.getElementById('active-workout-name').textContent=w.name;
-  renderActiveScreen();goScreen('s-active');
-}
-function renderActiveScreen(){
+/* ===== AVVIO / RIPRESA =====
+   Un solo pulsante. La prima volta segna l'allenamento come avviato; dalle
+   volte successive riprende senza cancellare niente. In entrambi i casi apre
+   direttamente il primo esercizio ancora senza spunta. */
+function startOrContinueWorkout(){
   var w=workouts[currentWorkoutIdx];if(!w)return;
-  var html='';
-  for(var i=0;i<w.exercises.length;i++){
-    var ex=w.exercises[i];var ic=ex.type==='cardio';
-    var done=ic?(ex.done?1:0):(ex.sets?ex.sets.filter(function(s){return s.done;}).length:0);
-    var total=ic?1:(ex.sets?ex.sets.length:1);
-    var allDone=done===total&&total>0;var pct=total>0?Math.round(done/total*100):0;
-    var bc=allDone?'var(--green)':ic?'var(--orange)':'var(--border)';var pc=ic?'var(--orange)':'var(--blue)';
-    var sub=ic?('Cardio - '+Math.round((ex.durationSeconds||600)/60)+' min'):(done+'/'+total+' set completati');
-    html+='<div class="active-ex-card" onclick="openExFromActive('+i+')" style="border-color:'+bc+';">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;"><div style="color:#fff;font-size:15px;font-weight:600;">'+escHtml(ex.name)+'</div><div style="width:28px;height:28px;border-radius:50%;background:'+(allDone?'var(--green)':'var(--card2)')+';border:1.5px solid '+bc+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">'+(allDone?'&#10003;':'')+'</div></div>';
-    html+='<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%;background:'+pc+';"></div></div>';
-    html+='<div style="color:var(--muted);font-size:12px;">'+sub+'</div></div>';
+  if(w.exercises.length===0){alert('Aggiungi almeno un esercizio!');return;}
+
+  if(!isStarted(w)){
+    w.startedAt=new Date().toISOString();
+    clockSec=0;
+    save();
   }
-  document.getElementById('active-ex-list').innerHTML=html;
+  startClock();
+
+  var idx=firstUndoneIdx(w);
+  if(idx===-1){renderWorkoutScreen();return;}   /* gia tutto fatto */
+  openExerciseAt(idx);
+}
+
+function startClock(){
+  if(clockInterval)clearInterval(clockInterval);
+  updateClockLabel();
+  clockInterval=setInterval(function(){clockSec++;updateClockLabel();},1000);
+}
+function updateClockLabel(){
+  var el=document.getElementById('workout-clock');if(!el)return;
+  var ms=String(Math.floor(clockSec/60)),ss=String(clockSec%60);
+  if(ms.length<2)ms='0'+ms; if(ss.length<2)ss='0'+ss;
+  el.textContent=ms+':'+ss;
+}
+
+/* apre l'esercizio i-esimo, posizionandosi sul primo set non fatto */
+function openExerciseAt(i){
+  var w=workouts[currentWorkoutIdx];var ex=w.exercises[i];if(!ex)return;
+  currentExIdx=i;
+  if(ex.type==='cardio'){renderCardioDetail();goScreen('s-cardio-detail');return;}
+  currentSetIdx=0;
+  for(var k=0;k<ex.sets.length;k++){if(!ex.sets[k].done){currentSetIdx=k;break;}}
+  renderExDetail();goScreen('s-ex-detail');
+}
+
+/* Azzera progressi: riporta tutto a vuoto e il pulsante a "Inizia allenamento" */
+function askResetProgress(){
+  showConfirm('Azzera progressi','Tutte le spunte di questo allenamento tornano a vuoto. Gli esercizi, i chili e le ripetizioni restano.',function(){
+    var w=workouts[currentWorkoutIdx];if(!w)return;
+    for(var i=0;i<w.exercises.length;i++){
+      var ex=w.exercises[i];
+      if(ex.type==='cardio')ex.done=false;
+      else for(var j=0;j<(ex.sets||[]).length;j++)ex.sets[j].done=false;
+    }
+    w.startedAt=null;w.completedAt=null;
+    if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
+    clockSec=0;
+    save();renderWorkoutScreen();renderTodayWorkouts();
+  });
 }
 
 /* SET + TIMER (punto 4: no schermata pausa, passa diretto) */
@@ -1162,11 +1385,11 @@ function logCurrentSet(){
   _goNextFn=function(){
     if(hn){currentSetIdx=nsi;renderExDetail();goScreen('s-ex-detail');}
     else if(he){currentExIdx=nei;currentSetIdx=0;var nx=w.exercises[nei];if(nx.type==='cardio'){renderCardioDetail();goScreen('s-cardio-detail');}else{renderExDetail();goScreen('s-ex-detail');}}
-    else{renderActiveScreen();goScreen('s-active');}
+    else{backToWorkout();}
   };
   startTimerScreen(rest);
 }
-function goNextExOrActive(){var w=workouts[currentWorkoutIdx];var ni=currentExIdx+1;if(ni<w.exercises.length){currentExIdx=ni;currentSetIdx=0;var nx=w.exercises[ni];if(nx.type==='cardio'){renderCardioDetail();goScreen('s-cardio-detail');}else{renderExDetail();goScreen('s-ex-detail');}}else{renderActiveScreen();goScreen('s-active');}}
+function goNextExOrActive(){var w=workouts[currentWorkoutIdx];var ni=currentExIdx+1;if(ni<w.exercises.length){currentExIdx=ni;currentSetIdx=0;var nx=w.exercises[ni];if(nx.type==='cardio'){renderCardioDetail();goScreen('s-cardio-detail');}else{renderExDetail();goScreen('s-ex-detail');}}else{backToWorkout();}}
 function startTimerScreen(secs){
   timerRemaining=secs;timerTotal=secs;timerActive=true;timerEndTs=Date.now()+secs*1000;
   showMiniBar(false);if(timerInterval)clearInterval(timerInterval);
@@ -1193,17 +1416,52 @@ function adjustTimer(d){timerRemaining=Math.max(0,timerRemaining+d);timerEndTs=D
 function skipTimer(){if(timerInterval)clearInterval(timerInterval);timerActive=false;showMiniBar(false);if(_goNextFn)_goNextFn();}
 
 /* UPDATE TEMPLATE (punto 8) */
-function updateTemplate(){
-  var w=workouts[currentWorkoutIdx];var ti=-1;
-  for(var i=0;i<TEMPLATES.length;i++){if(TEMPLATES[i].name===w.name){ti=i;break;}}
-  if(ti===-1)return;
-  var tpl=TEMPLATES[ti];
-  tpl.exercises=deepClone(w.exercises).map(function(e){
-    if(e.type==='cardio'){e.done=false;}
-    else if(e.sets){e.sets=e.sets.map(function(s){return{kg:s.kg,reps:s.reps,done:false,restSeconds:s.restSeconds};});}
-    return e;
+/* ===== SCHEDE RIUTILIZZABILI =====
+   Ogni allenamento con almeno un esercizio diventa (e resta) una scheda con
+   lo stesso nome. Cosi un allenamento inventato oggi si ritrova fra le schede
+   domani, con set, chili, ripetizioni e timer gia dentro.
+   Non chiama save(): e save() a chiamare questa, quindi si rientrerebbe. */
+function findScheda(nome){
+  for(var i=0;i<TEMPLATES.length;i++)if(TEMPLATES[i].name===nome)return i;
+  return -1;
+}
+/* Gli allenamenti creati prima di questa versione non hanno mai generato una
+   scheda. Li converto una volta sola: il contrassegno sta sul singolo
+   allenamento, cosi se poi cancelli la scheda non ricompare al prossimo avvio. */
+function migrateWorkoutsToSchede(){
+  var cambiato=false;
+  for(var i=0;i<workouts.length;i++){
+    var w=workouts[i];
+    if(!w||w.schedaCreata)continue;
+    w.schedaCreata=true;cambiato=true;
+    if(!w.name||!Array.isArray(w.exercises)||w.exercises.length===0)continue;
+    if(findScheda(w.name)!==-1)continue;
+    TEMPLATES.push({name:w.name,exercises:stripDone(w.exercises)});
+  }
+  return cambiato;
+}
+
+function syncScheda(){
+  if(currentWorkoutIdx===null||currentWorkoutIdx===undefined)return;
+  var w=workouts[currentWorkoutIdx];
+  if(!w||!w.name||!Array.isArray(w.exercises)||w.exercises.length===0)return;
+  var exs=stripDone(w.exercises);
+  var ti=findScheda(w.name);
+  if(ti===-1)TEMPLATES.push({name:w.name,exercises:exs});
+  else TEMPLATES[ti].exercises=exs;
+}
+/* vecchio nome, lasciato per i punti del codice che lo chiamavano */
+function updateTemplate(){syncScheda();}
+
+function askDeleteScheda(i){
+  var t=TEMPLATES[i];if(!t)return;
+  showConfirm('Elimina scheda','Vuoi eliminare la scheda "'+t.name+'"? Gli allenamenti gia fatti con questa scheda restano nel calendario.',function(){
+    TEMPLATES.splice(i,1);
+    if(selectedTemplateIdx===i)selectedTemplateIdx=null;
+    else if(selectedTemplateIdx!==null&&selectedTemplateIdx>i)selectedTemplateIdx--;
+    saveLocal();if(currentUser)saveToFirebase();
+    renderTemplateList();
   });
-  save();
 }
 
 /* FINE ALLENAMENTO (punto 10: fix) */
@@ -1216,6 +1474,7 @@ function finishWorkout(){
   timerActive=false;cardioActive=false;
   stopAlarmSound();showMiniBar(false);showMiniCardioBar(false);
   updateTemplate();save();
+  renderWorkoutScreen();
   buildCalendar();renderTodayWorkouts();goScreen('s-home');
 }
 
@@ -1264,7 +1523,7 @@ function downloadPDF(){
     var ex=w.exercises[i];var ic=ex.type==='cardio';
     if(ic){
       rowNum++;var dur=Math.floor((ex.durationSeconds||600)/60)+'\''+pad((ex.durationSeconds||600)%60)+'"';
-      rows+='<tr style="background:'+(rowNum%2===0?'#fff8f0':'#fff')+'"><td>'+rowNum+'</td><td><strong>'+escHtml(ex.name)+'</strong><br><small style="color:#ea580c;">CARDIO</small></td><td>-</td><td>Liv:'+(ex.level||0)+' Inc:'+(ex.incline||0)+'%<br>Vel:'+(ex.speed||0)+'km/h</td><td>'+dur+'</td><td>Cal:'+(ex.calories||0)+'</td><td>'+escHtml(ex.note||'')+'</td></tr>';
+      rows+='<tr style="background:'+(rowNum%2===0?'#fff8f0':'#fff')+'"><td>'+rowNum+'</td><td><strong>'+escHtml(ex.name)+'</strong><br><small style="color:#ea580c;">CARDIO</small></td><td>-</td><td>'+(isTapisRoulant(ex.name)?'':'Liv:'+(ex.level||0)+' ')+'Inc:'+(ex.incline||0)+'%<br>Vel:'+(ex.speed||0)+'km/h</td><td>'+dur+'</td><td>Cal:'+(ex.calories||0)+'</td><td>'+escHtml(ex.note||'')+'</td></tr>';
     }else{
       for(var j=0;j<(ex.sets||[]).length;j++){
         var s=ex.sets[j];rowNum++;var rest=s.restSeconds||ex.restSeconds||90;var rs=rest>=60?(Math.floor(rest/60)+'\''+pad(rest%60)+'"'):(rest+'"');
